@@ -164,9 +164,3 @@ if canvas_result.image_data is not None:
             mostrar_resultado(prediccion, confianza, result)
         else:
             st.warning("Dibuja algo primero")
-
-            mostrar_resultado(prediccion, confianza, result)
-        else:
-            st.warning("Dibuja algo primero")
-
-
