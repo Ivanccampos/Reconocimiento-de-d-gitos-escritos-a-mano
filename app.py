@@ -118,14 +118,14 @@ st.markdown(titulo_animado("ADIVINA EL NUMERO"), unsafe_allow_html=True)
 # Galería de imágenes superior (HE QUITADO EL 0.GIF DE AQUÍ)
 cols = st.columns(4) # Ahora solo 4 columnas
 with cols[0]:
-    if os.path.exists("Gifs/pollo.jpg"): 
-        st.image("Gifs/pollo.jpg", use_container_width=True)
+    if os.path.exists("Gifs/pollo.png"): 
+        st.image("Gifs/pollo.png", use_container_width=True)
 with cols[1]:
     # Pocoyo Dance
     st.image("https://media.tenor.com/pocoyo-dance.gif", use_container_width=True)
 with cols[2]:
-    if os.path.exists("Gifs/brsm.jpg"): 
-        st.image("Gifs/brsm.jpg", use_container_width=True)
+    if os.path.exists("Gifs/brsm.png"): 
+        st.image("Gifs/brsm.png", use_container_width=True)
 with cols[3]:
     if os.path.exists("Gifs/image_992305.png"): 
         st.image("Gifs/image_992305.png", use_container_width=True)
@@ -160,3 +160,4 @@ with c2:
             mostrar_resultado(pred, conf, res)
         else:
             st.warning("¡Dibuja algo primero!")
+
