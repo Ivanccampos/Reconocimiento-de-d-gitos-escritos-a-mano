@@ -8,10 +8,10 @@ import altair as alt
 import os
 import random
 
-# Configuración de la página
+# 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Juego de Numeros", layout="wide")
 
-# --- ESTILO CSS PARA POSICIONAMIENTO "DELANTE DEL TEXTO" ---
+# 2. ESTILO CSS RETRO (Fondo de mosaico y Comic Sans)
 st.markdown("""
     <style>
     .stApp {
@@ -19,7 +19,6 @@ st.markdown("""
         background-repeat: repeat;
         background-attachment: fixed;
     }
-
     @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
     
     html, body, [class*="st-"] {
@@ -40,6 +39,7 @@ st.markdown("""
         font-weight: bold;
         text-align: center;
         text-shadow: 3px 3px 0px #000;
+        margin-bottom: 10px;
     }
     
     .animated-letter {
@@ -47,43 +47,23 @@ st.markdown("""
         animation: color-change 2s infinite;
     }
 
-    /* ESTILO PARA IMÁGENES FLOTANTES (Delante de texto) */
-    .floating-img {
-        position: absolute;
-        z-index: 100;
-        border: 2px solid white;
-        box-shadow: 4px 4px 0px black;
-        background: white;
-    }
-
-    /* Posiciones específicas para tus imágenes */
-    .img-pollo { top: 150px; left: 50px; width: 150px; }
-    .img-pocoyo { top: 150px; right: 50px; width: 180px; }
-    .img-brsm { top: 450px; left: 40px; width: 160px; }
-    .img-decor { top: 450px; right: 40px; width: 160px; }
-
-    /* Estilo del Canvas centrado */
+    /* Estilo del Canvas con bordes 3D retro */
     [data-testid="stCanvas"] {
         border: 4px solid;
         border-color: #ffffff #808080 #808080 #ffffff !important;
         box-shadow: 6px 6px 0px #000;
         margin: 0 auto;
     }
-    
+
+    /* Centrar el botón */
     .stButton > button {
         display: block;
         margin: 20px auto;
-        font-size: 24px !important;
+        background-color: #ffeb3b;
+        border: 2px solid black;
+        font-weight: bold;
     }
     </style>
-    """, unsafe_allow_html=True)
-
-# Inyección de las imágenes flotantes HTML
-st.markdown(f"""
-    <img src="https://media.tenor.com/On7_2777698AAAAC/pocoyo-dance.gif" class="floating-img img-pocoyo">
-    <img src="app/static/Gifs/pollo.png" class="floating-img img-pollo" onerror="this.style.display='none'">
-    <img src="app/static/Gifs/brsm.png" class="floating-img img-brsm" onerror="this.style.display='none'">
-    <img src="app/static/Gifs/image_992305.png" class="floating-img img-decor" onerror="this.style.display='none'">
     """, unsafe_allow_html=True)
 
 def titulo_animado(texto):
@@ -97,43 +77,62 @@ def titulo_animado(texto):
     html_title += '</div>'
     return html_title
 
-# 1. Cargar el modelo ONNX
+# 3. CARGAR MODELO ONNX
 @st.cache_resource
 def load_model():
     return ort.InferenceSession("modelo_digitos.onnx")
 
-session = load_model()
+try:
+    session = load_model()
+except:
+    st.error("Archivo modelo_digitos.onnx no encontrado")
 
 # --- VENTANA DE RESULTADO ---
 @st.dialog("¡MIRA!")
 def mostrar_resultado(prediccion, confianza, probabilidades):
     st.markdown(titulo_animado(f"NUMERO {prediccion}"), unsafe_allow_html=True)
+    
     col_gif, col_txt = st.columns([1, 1.2])
     with col_gif:
+        # Busca el GIF del resultado (0.gif, 1.gif...)
         ruta_gif = f"Gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
+        else:
+            st.write("🌈")
+
     with col_txt:
         st.write(f"### CONFIANZA: {confianza:.1f}%")
         st.progress(int(confianza))
     
-    chart_data = pd.DataFrame({'Num': [str(i) for i in range(10)], 'Val': probabilidades})
-    grafica = alt.Chart(chart_data).mark_bar().encode(
-        x=alt.X('Num', axis=alt.Axis(labelAngle=0)),
-        y=alt.Y('Val', axis=None),
-        color=alt.condition(alt.datum.Num == str(prediccion), alt.value('#FF4B4B'), alt.value('#4B8BFF'))
-    ).properties(height=150)
-    st.altair_chart(grafica, use_container_width=True)
     if st.button("VOLVER A JUGAR"):
         st.rerun()
 
 # --- INTERFAZ PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINA EL NUMERO"), unsafe_allow_html=True)
-st.write("<h3 style='text-align:center;'>Dibuja abajo</h3>", unsafe_allow_html=True)
 
-# Centrado del Canvas
-c1, c2, c3 = st.columns([1, 1.5, 1])
-with c2:
+# 4. DISPOSICIÓN DE IMÁGENES (.PNG) Y CANVAS
+# Usamos 3 columnas para que las imágenes rodeen al lienzo sin moverlo
+col_izq, col_centro, col_der = st.columns([1, 2, 1])
+
+with col_izq:
+    # Imagen del Pollo
+    if os.path.exists("Gifs/pollo.png"):
+        st.image("Gifs/pollo.png", use_container_width=True)
+    st.write(" ") # Espacio
+    # Imagen de Barrio Sésamo
+    if os.path.exists("Gifs/brsm.png"):
+        st.image("Gifs/brsm.png", use_container_width=True)
+
+with col_der:
+    # GIF de Pocoyó desde enlace directo
+    st.image("https://media.tenor.com/On7_2777698AAAAC/pocoyo-dance.gif", use_container_width=True)
+    st.write(" ") # Espacio
+    # Tu imagen decorativa adicional
+    if os.path.exists("Gifs/image_992305.png"):
+        st.image("Gifs/image_992305.png", use_container_width=True)
+
+with col_centro:
     canvas_result = st_canvas(
         fill_color="white",
         stroke_width=25,
@@ -144,18 +143,25 @@ with c2:
         drawing_mode="freedraw",
         key="canvas",
     )
-
+    
+    st.write("<p style='text-align:center;'>Dibuja aquí arriba</p>", unsafe_allow_html=True)
+    
     if st.button("¿QUE NUMERO ES?"):
         img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
         if np.any(np.array(img) > 20):
+            # Preprocesar para el modelo (28x28)
             img_28 = img.resize((28, 28), Image.LANCZOS)
             img_array = np.array(img_28).astype('float32') / 255.0
             img_array = img_array.reshape(1, 28, 28, 1)
 
-            res = session.run(None, {session.get_inputs()[0].name: img_array})[0][0]
-            pred = np.argmax(res)
-            conf = float(res[pred] * 100)
-            mostrar_resultado(pred, conf, res)
+            # Inferencia
+            input_name = session.get_inputs()[0].name
+            output_name = session.get_outputs()[0].name
+            result = session.run([output_name], {input_name: img_array})[0][0]
+            
+            prediccion = np.argmax(result)
+            confianza = float(result[prediccion] * 100)
 
-
-
+            mostrar_resultado(prediccion, confianza, result)
+        else:
+            st.warning("¡Dibuja algo primero!")
