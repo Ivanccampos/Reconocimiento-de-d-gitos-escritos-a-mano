@@ -11,10 +11,10 @@ import random
 # Configuración de la página
 st.set_page_config(page_title="Juego de Numeros", layout="centered")
 
-# --- ESTILO CSS RETRO Y CENTRADO ---
+# --- ESTILO CSS RETRO, CENTRADO Y ANIMACIÓN DE COLORES ---
 st.markdown("""
     <style>
-    /* Fondo de mosaico repetitivo tipo early internet */
+    /* Fondo de mosaico repetitivo */
     .stApp {
         background-image: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
         background-repeat: repeat;
@@ -28,6 +28,16 @@ st.markdown("""
         font-family: 'Comic Sans MS', 'Comic Neue', cursive !important;
     }
 
+    /* Animación para que las letras cambien de color */
+    @keyframes color-change {
+        0% { color: #FF5733; }
+        20% { color: #33FF57; }
+        40% { color: #3357FF; }
+        60% { color: #F333FF; }
+        80% { color: #FFF333; }
+        100% { color: #FF5733; }
+    }
+
     .comic-font {
         font-size: 48px;
         font-weight: bold;
@@ -35,31 +45,31 @@ st.markdown("""
         text-shadow: 2px 2px 0px #000;
         margin-bottom: 20px;
     }
+    
+    .animated-letter {
+        display: inline-block;
+        animation: color-change 2s infinite;
+    }
 
     /* Bordes estilo Windows 95 para el lienzo */
     [data-testid="stCanvas"] {
         border: 3px solid;
         border-color: #ffffff #808080 #808080 #ffffff !important;
         box-shadow: 4px 4px 0px #000;
-    }
-    
-    /* Centrar botones */
-    .stButton > button {
-        display: block;
         margin: 0 auto;
     }
     </style>
     """, unsafe_allow_html=True)
 
-def titulo_colores(texto):
-    colores = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#FFF333', '#33FFF3', '#FF8333']
+def titulo_animado(texto):
     html_title = '<div class="comic-font">'
-    for char in texto:
+    for i, char in enumerate(texto):
         if char == " ":
             html_title += '&nbsp;'
         else:
-            color = random.choice(colores)
-            html_title += f'<span style="color:{color};">{char}</span>'
+            # Desfasamos la animación para cada letra para un efecto arcoíris
+            delay = i * 0.1
+            html_title += f'<span class="animated-letter" style="animation-delay: {delay}s;">{char}</span>'
     html_title += '</div>'
     return html_title
 
@@ -73,13 +83,16 @@ session = load_model()
 # --- VENTANA DE RESULTADO ---
 @st.dialog("RESULTADO")
 def mostrar_resultado(prediccion, confianza, probabilidades):
-    st.markdown(titulo_colores(f"NUMERO {prediccion}"), unsafe_allow_html=True)
+    st.markdown(titulo_animado(f"NUMERO {prediccion}"), unsafe_allow_html=True)
     
     col_gif, col_txt = st.columns([1, 1.5])
     with col_gif:
-        ruta_gif = f"Gifs/{prediccion}.gif"
+        # Intenta cargar el GIF animado
+        ruta_gif = f"gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
+        elif os.path.exists(f"{prediccion}.gif"):
+            st.image(f"{prediccion}.gif", use_container_width=True)
         else:
             st.write("✨")
 
@@ -109,10 +122,10 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
         st.rerun()
 
 # --- INTERFAZ PRINCIPAL ---
-st.markdown(titulo_colores("ADIVINA EL NUMERO"), unsafe_allow_html=True)
+st.markdown(titulo_animado("ADIVINA EL NUMERO"), unsafe_allow_html=True)
 st.write("<p style='text-align:center;'>Dibuja un numero grande en el cuadro negro</p>", unsafe_allow_html=True)
 
-# 2. Centrado del Canvas usando columnas
+# 2. Centrado del Canvas
 col1, col2, col3 = st.columns([1, 2, 1])
 
 with col2:
@@ -131,15 +144,16 @@ with col2:
 if canvas_result.image_data is not None:
     img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
     
-    st.write("") # Espacio estético
+    st.write("") 
+    # Botón centrado mediante CSS
     if st.button("¿QUE NUMERO ES?"):
         if np.any(np.array(img) > 20):
-            # Preprocesar
+            # Preprocesar para el modelo (28x28)
             img_28 = img.resize((28, 28), Image.LANCZOS)
             img_array = np.array(img_28).astype('float32') / 255.0
             img_array = img_array.reshape(1, 28, 28, 1)
 
-            # Inferencia
+            # Inferencia con ONNX
             input_name = session.get_inputs()[0].name
             output_name = session.get_outputs()[0].name
             result = session.run([output_name], {input_name: img_array})[0][0]
@@ -150,3 +164,8 @@ if canvas_result.image_data is not None:
             mostrar_resultado(prediccion, confianza, result)
         else:
             st.warning("Dibuja algo primero")
+
+            mostrar_resultado(prediccion, confianza, result)
+        else:
+            st.warning("Dibuja algo primero")
+
