@@ -31,9 +31,9 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
         'Confianza': probabilidades
     })
 
-    # Gráfica con Altair y etiquetas verticales (labelAngle=90)
+    # Gráfica con Altair
     grafica = alt.Chart(chart_data).mark_bar().encode(
-        x=alt.X('Dígito', axis=alt.Axis(labelAngle=90, title="Dígito")),
+        x=alt.X('Dígito', axis=alt.Axis(labelAngle=0, title="Dígito")),
         y=alt.Y('Confianza', axis=alt.Axis(title="Nivel de Confianza")),
         color=alt.condition(
             alt.datum.Dígito == str(prediccion),
@@ -56,33 +56,5 @@ canvas_result = st_canvas(
     fill_color="rgba(255, 255, 255, 1)",
     stroke_width=20,
     stroke_color="#FFFFFF",
-    background_color="#000000",
-    height=280,
-    width=280,
-    drawing_mode="freedraw",
-    key="canvas",
-)
+    background_color="#0
 
-if canvas_result.image_data is not None:
-    img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
-    
-    if st.button("Analizar Dibujo"):
-        # Solo procesar si el lienzo no está vacío
-        if np.any(np.array(img) > 20):
-            # Preprocesar
-            img_28 = img.resize((28, 28), Image.LANCZOS)
-            img_array = np.array(img_28).astype('float32') / 255.0
-            img_array = img_array.reshape(1, 28, 28, 1)
-
-            # Inferencia
-            input_name = session.get_inputs()[0].name
-            output_name = session.get_outputs()[0].name
-            result = session.run([output_name], {input_name: img_array})[0][0]
-            
-            prediccion = np.argmax(result)
-            confianza = result[prediccion] * 100
-
-            # Llamar a la ventana emergente
-            mostrar_resultado(prediccion, confianza, result)
-        else:
-            st.warning("Por favor, dibuja algo primero.")
