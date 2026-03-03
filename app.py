@@ -11,121 +11,147 @@ import random
 # Configuración de la página
 st.set_page_config(page_title="Juego de Numeros", layout="centered")
 
-# --- ESTILO CSS PARA LETRAS DE COLORES Y COMIC SANS ---
+# --- BLOQUE DE ESTILO CSS PARA COMIC SANS Y COLORES ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
     
     .comic-font {
         font-family: 'Comic Sans MS', 'Comic Neue', cursive;
-        font-size: 45px;
+        font-size: 48px;
         font-weight: bold;
         text-align: center;
+        line-height: 1.2;
         margin-bottom: 20px;
     }
     
-    .letter { display: inline-block; }
+    .letter {
+        display: inline-block;
+        padding: 0 2px;
+    }
+
+    /* Estilo para los textos secundarios */
+    .comic-text {
+        font-family: 'Comic Sans MS', 'Comic Neue', cursive;
+        font-size: 20px;
+        color: #555;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-def colored_title(text):
-    colors = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#FFF333', '#33FFF3', '#FF8333']
-    html_title = '<div class="comic-font">'
-    for char in text:
-        if char == " ":
-            html_title += '&nbsp;'
+# Función para crear títulos con letras de colores aleatorios
+def titulo_colores(texto):
+    colores = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#FFF333', '#33FFF3', '#FF8333', '#FF3383']
+    html_final = '<div class="comic-font">'
+    for letra in texto:
+        if letra == " ":
+            html_final += '&nbsp;'
         else:
-            color = random.choice(colors)
-            html_title += f'<span class="letter" style="color:{color};">{char}</span>'
-    html_title += '</div>'
-    return html_title
+            color_elegido = random.choice(colores)
+            html_final += f'<span class="letter" style="color:{color_elegido};">{letra}</span>'
+    html_final += '</div>'
+    return html_final
 
-# 1. Cargar el modelo
+# 1. Cargar el modelo ONNX
 @st.cache_resource
-def load_model():
-    return ort.InferenceSession("modelo_digits.onnx")
+def cargar_modelo():
+    # Asegúrate de que el nombre del archivo coincida con el de tu repositorio
+    return ort.InferenceSession("modelo_digitos.onnx")
 
 try:
-    session = load_model()
-except:
-    st.error("Falta el archivo modelo_digits.onnx")
+    session = cargar_modelo()
+except Exception as e:
+    st.error("No se encontro el archivo modelo_digitos.onnx")
+    st.stop()
 
-# --- VENTANA DE RESULTADO ---
-@st.dialog("RESULTADO")
-def mostrar_resultado(prediccion, confianza, probabilidades):
-    if confianza > 80:
-        st.balloons()
+# --- VENTANA EMERGENTE DE RESULTADO ---
+@st.dialog("ADIVINANZA")
+def ventana_resultado(prediccion, confianza, probabilidades):
+    # Título de la ventana con letras de colores
+    st.markdown(titulo_colores(f"NUMERO {prediccion}"), unsafe_allow_html=True)
     
-    # Título colorido dentro del diálogo
-    st.markdown(colored_title(f"NUMERO {prediccion}"), unsafe_allow_html=True)
+    col_izq, col_der = st.columns([1, 1.5])
     
-    col_gif, col_txt = st.columns([1, 1.5])
-    
-    with col_gif:
+    with col_izq:
+        # Cargar el GIF correspondiente
         ruta_gif = f"gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
         else:
-            st.write("---")
-
-    with col_txt:
-        st.write(f"CONFIANZA: {confianza:.1f}%")
+            # Si no hay carpeta gifs, busca en la raiz
+            if os.path.exists(f"{prediccion}.gif"):
+                st.image(f"{prediccion}.gif", use_container_width=True)
+    
+    with col_der:
+        st.markdown(f"<p class='comic-text'>CONFIANZA: {confianza:.1f}%</p>", unsafe_allow_html=True)
         st.progress(int(confianza))
+        
+    st.write("---")
+    st.markdown("<p class='comic-text'>PUNTUACION DE CADA NUMERO</p>", unsafe_allow_html=True)
     
-    st.write("GRAFICA DE PUNTOS")
-    
-    chart_data = pd.DataFrame({
+    # Gráfica de barras colorida con Altair
+    datos_grafica = pd.DataFrame({
         'Numero': [str(i) for i in range(10)],
-        'Puntaje': probabilidades
+        'Valor': probabilidades
     })
 
-    grafica = alt.Chart(chart_data).mark_bar(cornerRadius=10).encode(
+    grafica = alt.Chart(datos_grafica).mark_bar(cornerRadius=8).encode(
         x=alt.X('Numero', axis=alt.Axis(labelAngle=0)),
-        y=alt.Y('Puntaje'),
+        y=alt.Y('Valor', axis=None),
         color=alt.condition(
             alt.datum.Numero == str(prediccion),
-            alt.value('#FF4B4B'), 
-            alt.value('#4BFF4B')  
+            alt.value('#FF4B4B'), # Rojo para el ganador
+            alt.value('#4B8BFF')  # Azul para los demas
         )
-    ).properties(height=250)
+    ).properties(height=200)
 
     st.altair_chart(grafica, use_container_width=True)
     
-    if st.button("VOLVER A JUGAR"):
+    if st.button("BORRAR Y VOLVER"):
         st.rerun()
 
-# --- CUERPO PRINCIPAL ---
-st.markdown(colored_title("ADIVINA EL NUMERO"), unsafe_allow_html=True)
+# --- INTERFAZ PRINCIPAL ---
+st.markdown(titulo_colores("ADIVINA EL NUMERO"), unsafe_allow_html=True)
 
-st.write("Dibuja un numero muy grande en el cuadro negro")
+st.markdown("<p class='comic-text' style='text-align:center;'>Escribe un numero grande y gordito en el cuadro</p>", unsafe_allow_html=True)
 
-canvas_result = st_canvas(
-    fill_color="white",
-    stroke_width=25,
-    stroke_color="white",
-    background_color="black",
-    height=300,
-    width=300,
-    drawing_mode="freedraw",
-    key="canvas",
-)
+# Contenedor para centrar el lienzo
+col_canvas, _ = st.columns([1, 0.01])
+with col_canvas:
+    canvas_result = st_canvas(
+        fill_color="white",
+        stroke_width=25,
+        stroke_color="white",
+        background_color="black",
+        height=300,
+        width=300,
+        drawing_mode="freedraw",
+        key="canvas_infantil",
+    )
 
+# Botón para activar la adivinanza
 if canvas_result.image_data is not None:
-    img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
+    img_data = canvas_result.image_data.astype('uint8')
+    img_pil = Image.fromarray(img_data).convert('L')
     
-    if st.button("ADIVINAR"):
-        if np.any(np.array(img) > 30):
-            img_28 = img.resize((28, 28), Image.LANCZOS)
-            img_array = np.array(img_28).astype('float32') / 255.0
-            img_array = img_array.reshape(1, 28, 28, 1)
+    st.write("") # Espacio
+    if st.button("¿QUE NUMERO ES?"):
+        # Verificar si hay dibujo
+        if np.any(np.array(img_pil) > 20):
+            # Preprocesamiento
+            img_res = img_pil.resize((28, 28), Image.LANCZOS)
+            img_norm = np.array(img_res).astype('float32') / 255.0
+            img_final = img_norm.reshape(1, 28, 28, 1)
 
-            input_name = session.get_inputs()[0].name
-            output_name = session.get_outputs()[0].name
-            result = session.run([output_name], {input_name: img_array})[0][0]
+            # Inferencia
+            input_node = session.get_inputs()[0].name
+            output_node = session.get_outputs()[0].name
+            pred_raw = session.run([output_node], {input_node: img_final})[0][0]
             
-            prediccion = np.argmax(result)
-            confianza = float(result[prediccion] * 100)
+            num_final = np.argmax(pred_raw)
+            prob_final = float(pred_raw[num_final] * 100)
 
-            mostrar_resultado(prediccion, confianza, result)
+            # Mostrar resultado en ventana emergente
+            ventana_resultado(num_final, prob_final, pred_raw)
         else:
-            st.write("DIBUJA ALGO PRIMERO")
+            st.warning("Dibuja algo primero")
