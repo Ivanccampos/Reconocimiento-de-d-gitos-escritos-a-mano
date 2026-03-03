@@ -60,6 +60,7 @@ st.markdown("""
         border: 2px solid black;
         font-weight: bold;
         font-size: 20px;
+        color: black;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -75,7 +76,7 @@ def titulo_animado(texto):
     html_title += '</div>'
     return html_title
 
-# 3. CARGAR MODELO
+# 3. CARGAR MODELO ONNX
 @st.cache_resource
 def load_model():
     return ort.InferenceSession("modelo_digitos.onnx")
@@ -83,29 +84,29 @@ def load_model():
 try:
     session = load_model()
 except:
-    st.error("Error: modelo_digitos.onnx no encontrado.")
+    st.error("Archivo modelo_digitos.onnx no encontrado")
 
-# --- VENTANA DE RESULTADO CON GRÁFICA RESTAURADA ---
+# --- VENTANA DE RESULTADO CON GRÁFICA ---
 @st.dialog("¡MIRA EL RESULTADO!")
 def mostrar_resultado(prediccion, confianza, probabilidades):
     st.markdown(titulo_animado(f"NUMERO {prediccion}"), unsafe_allow_html=True)
     
     col_gif, col_txt = st.columns([1, 1.2])
     with col_gif:
+        # Los GIFs (0.gif, 1.gif...) siguen apareciendo aquí al acertar
         ruta_gif = f"Gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
         else:
-            st.write("✨")
+            st.write("🌈")
 
     with col_txt:
         st.write(f"### CONFIANZA: {confianza:.1f}%")
         st.progress(int(confianza))
     
     st.write("---")
-    st.write("### PROBABILIDADES")
+    st.write("### ¿CUÁNTO SE PARECE A OTROS NÚMEROS?")
     
-    # --- GRÁFICA DE BARRAS REESTABLECIDA ---
     chart_data = pd.DataFrame({
         'Número': [str(i) for i in range(10)],
         'Probabilidad': probabilidades
@@ -116,35 +117,32 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
         y=alt.Y('Probabilidad', axis=None),
         color=alt.condition(
             alt.datum.Número == str(prediccion),
-            alt.value('#FF4B4B'), # Rojo para el ganador
-            alt.value('#4B8BFF')  # Azul para el resto
+            alt.value('#FF4B4B'), 
+            alt.value('#4B8BFF')
         )
     ).properties(height=150)
 
     st.altair_chart(grafica, use_container_width=True)
     
-    if st.button("INTENTAR OTRA VEZ"):
+    if st.button("VOLVER A JUGAR"):
         st.rerun()
 
 # --- INTERFAZ PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINA EL NUMERO"), unsafe_allow_html=True)
 
-# 4. IMÁGENES Y CANVAS (Columnas estables)
+# 4. DISPOSICIÓN DE IMÁGENES (Solo Pollo y Barrio Sésamo) Y CANVAS
 col_izq, col_centro, col_der = st.columns([1, 2, 1])
 
 with col_izq:
     if os.path.exists("Gifs/pollo.png"):
         st.image("Gifs/pollo.png", use_container_width=True)
-    st.write(" ")
+    st.write(" ") 
     if os.path.exists("Gifs/brsm.png"):
         st.image("Gifs/brsm.png", use_container_width=True)
 
 with col_der:
-    # Pocoyó (GIF directo para que no falle)
-    st.image("https://media.tenor.com/On7_2777698AAAAC/pocoyo-dance.gif", use_container_width=True)
+    # Columna derecha vacía por ahora (limpia de image_992305.png)
     st.write(" ")
-    if os.path.exists("Gifs/image_992305.png"):
-        st.image("Gifs/image_992305.png", use_container_width=True)
 
 with col_centro:
     canvas_result = st_canvas(
