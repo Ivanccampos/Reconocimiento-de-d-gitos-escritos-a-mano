@@ -8,114 +8,98 @@ import altair as alt
 import os
 import random
 
-# Configuracion de la pagina
+# Configuración de la página
 st.set_page_config(page_title="Juego de Numeros", layout="centered")
 
-# --- ESTILO CSS PARA EL "EARLY INTERNET" Y LETRAS DE COLORES ---
+# --- ESTILO CSS RETRO Y CENTRADO ---
 st.markdown("""
     <style>
-    /* 1. Fondo de pantalla de mosaico repetitivo */
-    /* Puedes cambiar esta URL por cualquier patron clásico de los 90s */
+    /* Fondo de mosaico repetitivo tipo early internet */
     .stApp {
         background-image: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
         background-repeat: repeat;
         background-attachment: fixed;
     }
 
-    /* 2. Tipografía Comic Sans para todo el texto */
+    /* Fuente Comic Sans */
     @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
     
-    html, body, {
+    html, body, [class*="st-"] {
         font-family: 'Comic Sans MS', 'Comic Neue', cursive !important;
     }
 
-    /* 3. Estilo de los títulos de colores */
     .comic-font {
         font-size: 48px;
         font-weight: bold;
         text-align: center;
-        line-height: 1.2;
+        text-shadow: 2px 2px 0px #000;
         margin-bottom: 20px;
-        text-shadow: 2px 2px 0px #000; /* Sombra cruda estilo retro */
-    }
-    
-    .letter {
-        display: inline-block;
-        padding: 0 2px;
     }
 
-    /* 4. Bordes estilo Windows 95 para el lienzo */
-    . {
+    /* Bordes estilo Windows 95 para el lienzo */
+    [data-testid="stCanvas"] {
         border: 3px solid;
-        border-color: #ffffff #808080 #808080 #ffffff !important; /* Efecto 3D crudo */
-        box-shadow: 2px 2px 0px #000;
+        border-color: #ffffff #808080 #808080 #ffffff !important;
+        box-shadow: 4px 4px 0px #000;
+    }
+    
+    /* Centrar botones */
+    .stButton > button {
+        display: block;
+        margin: 0 auto;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# Funcion para crear titulos con letras de colores aleatorios
 def titulo_colores(texto):
-    colores = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#FFF333', '#33FFF3', '#FF8333', '#FF3383']
-    html_final = '<div class="comic-font">'
-    for letra in texto:
-        if letra == " ":
-            html_final += '&nbsp;'
+    colores = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#FFF333', '#33FFF3', '#FF8333']
+    html_title = '<div class="comic-font">'
+    for char in texto:
+        if char == " ":
+            html_title += '&nbsp;'
         else:
-            color_elegido = random.choice(colores)
-            html_final += f'<span class="letter" style="color:{color_elegido};">{letra}</span>'
-    html_final += '</div>'
-    return html_final
+            color = random.choice(colores)
+            html_title += f'<span style="color:{color};">{char}</span>'
+    html_title += '</div>'
+    return html_title
 
 # 1. Cargar el modelo ONNX
 @st.cache_resource
-def cargar_modelo():
+def load_model():
     return ort.InferenceSession("modelo_digitos.onnx")
 
-try:
-    session = cargar_modelo()
-except Exception:
-    st.error("No se encontro el archivo modelo_digitos.onnx")
-    st.stop()
+session = load_model()
 
-# --- VENTANA EMERGENTE CON EL GIF RESTAURADO ---
-@st.dialog("ADIVINANZA")
-def ventana_resultado(prediccion, confianza, probabilidades):
-    # Titulo de colores dentro de la ventana
+# --- VENTANA DE RESULTADO ---
+@st.dialog("RESULTADO")
+def mostrar_resultado(prediccion, confianza, probabilidades):
     st.markdown(titulo_colores(f"NUMERO {prediccion}"), unsafe_allow_html=True)
     
-    col_izq, col_der = st.columns([1, 1.2])
-    
-    with col_izq:
-        # Buscamos el GIF correspondiente al numero predicho
+    col_gif, col_txt = st.columns([1, 1.5])
+    with col_gif:
         ruta_gif = f"Gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
-        elif os.path.exists(f"{prediccion}.gif"):
-            st.image(f"{prediccion}.gif", use_container_width=True)
         else:
-            st.write("✨") # Respaldo visual si falta el GIF
-    
-    with col_der:
-        st.write(f"### CONFIANZA: {confianza:.1f}%")
+            st.write("✨")
+
+    with col_txt:
+        st.write(f"CONFIANZA: {confianza:.1f}%")
         st.progress(int(confianza))
-        
-    st.write("---")
-    st.write("### PUNTUACION DE LOS NUMEROS")
     
-    # Grafica de barras colorida (Altair)
-    datos_grafica = pd.DataFrame({
+    st.write("---")
+    chart_data = pd.DataFrame({
         'Numero': [str(i) for i in range(10)],
-        'Valor': probabilidades
+        'Puntaje': probabilidades
     })
 
-    # Usamos barras con esquinas cuadradas para el look retro
-    grafica = alt.Chart(datos_grafica).mark_bar(cornerRadius=0).encode(
-        x=alt.X('Numero', axis=alt.Axis(labelAngle=0, title="Numero")),
-        y=alt.Y('Valor', axis=None),
+    grafica = alt.Chart(chart_data).mark_bar().encode(
+        x=alt.X('Numero', axis=alt.Axis(labelAngle=0)),
+        y=alt.Y('Puntaje', axis=None),
         color=alt.condition(
             alt.datum.Numero == str(prediccion),
-            alt.value('#FF4B4B'), # Rojo crudo
-            alt.value('#4B8BFF')  # Azul crudo
+            alt.value('#FF4B4B'), 
+            alt.value('#4B8BFF')  
         )
     ).properties(height=200)
 
@@ -125,45 +109,44 @@ def ventana_resultado(prediccion, confianza, probabilidades):
         st.rerun()
 
 # --- INTERFAZ PRINCIPAL ---
-# Título con efecto de sombra cruda y colores aleatorios
 st.markdown(titulo_colores("ADIVINA EL NUMERO"), unsafe_allow_html=True)
+st.write("<p style='text-align:center;'>Dibuja un numero grande en el cuadro negro</p>", unsafe_allow_html=True)
 
-st.write("### Dibuja un numero grande en el cuadro")
+# 2. Centrado del Canvas usando columnas
+col1, col2, col3 = st.columns([1, 2, 1])
 
-# Lienzo de dibujo con bordes estilo retro
-canvas_result = st_canvas(
-    fill_color="white",
-    stroke_width=25,
-    stroke_color="white",
-    background_color="black",
-    height=300,
-    width=300,
-    drawing_mode="freedraw",
-    key="canvas_infantil",
-)
+with col2:
+    canvas_result = st_canvas(
+        fill_color="rgba(255, 255, 255, 1)",
+        stroke_width=25,
+        stroke_color="#FFFFFF",
+        background_color="#000000",
+        height=300,
+        width=300,
+        drawing_mode="freedraw",
+        key="canvas",
+    )
 
+# 3. Procesamiento y Predicción
 if canvas_result.image_data is not None:
-    img_data = canvas_result.image_data.astype('uint8')
-    img_pil = Image.fromarray(img_data).convert('L')
+    img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
     
-    st.write("") 
+    st.write("") # Espacio estético
     if st.button("¿QUE NUMERO ES?"):
-        # Solo procesar si hay dibujo en el lienzo
-        if np.any(np.array(img_pil) > 20):
-            # Preprocesamiento para el modelo CNN
-            img_res = img_pil.resize((28, 28), Image.LANCZOS)
-            img_norm = np.array(img_res).astype('float32') / 255.0
-            img_final = img_norm.reshape(1, 28, 28, 1)
+        if np.any(np.array(img) > 20):
+            # Preprocesar
+            img_28 = img.resize((28, 28), Image.LANCZOS)
+            img_array = np.array(img_28).astype('float32') / 255.0
+            img_array = img_array.reshape(1, 28, 28, 1)
 
-            # Inferencia con ONNX Runtime
-            input_node = session.get_inputs()[0].name
-            output_node = session.get_outputs()[0].name
-            pred_raw = session.run([output_node], {input_node: img_final})[0][0]
+            # Inferencia
+            input_name = session.get_inputs()[0].name
+            output_name = session.get_outputs()[0].name
+            result = session.run([output_name], {input_name: img_array})[0][0]
             
-            num_final = np.argmax(pred_raw)
-            prob_final = float(pred_raw[num_final] * 100)
+            prediccion = np.argmax(result)
+            confianza = float(result[prediccion] * 100)
 
-            # Mostrar resultado en ventana emergente (Dialog)
-            ventana_resultado(num_final, prob_final, pred_raw)
+            mostrar_resultado(prediccion, confianza, result)
         else:
             st.warning("Dibuja algo primero")
