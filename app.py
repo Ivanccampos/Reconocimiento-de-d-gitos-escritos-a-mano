@@ -6,111 +6,126 @@ from PIL import Image
 import pandas as pd
 import altair as alt
 import os
+import random
 
 # Configuración de la página
-st.set_page_config(page_title="Reconocedor de Dígitos CNN", layout="centered")
+st.set_page_config(page_title="Juego de Numeros", layout="centered")
 
-# 1. Cargar el modelo ONNX de forma eficiente
+# --- ESTILO CSS PARA LETRAS DE COLORES Y COMIC SANS ---
+st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
+    
+    .comic-font {
+        font-family: 'Comic Sans MS', 'Comic Neue', cursive;
+        font-size: 45px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    
+    .letter { display: inline-block; }
+    </style>
+    """, unsafe_allow_html=True)
+
+def colored_title(text):
+    colors = ['#FF5733', '#33FF57', '#3357FF', '#F333FF', '#FFF333', '#33FFF3', '#FF8333']
+    html_title = '<div class="comic-font">'
+    for char in text:
+        if char == " ":
+            html_title += '&nbsp;'
+        else:
+            color = random.choice(colors)
+            html_title += f'<span class="letter" style="color:{color};">{char}</span>'
+    html_title += '</div>'
+    return html_title
+
+# 1. Cargar el modelo
 @st.cache_resource
 def load_model():
-    return ort.InferenceSession("modelo_digitos.onnx")
+    return ort.InferenceSession("modelo_digits.onnx")
 
-session = load_model()
+try:
+    session = load_model()
+except:
+    st.error("Falta el archivo modelo_digits.onnx")
 
-# --- FUNCIÓN PARA LA VENTANA EMERGENTE (DIALOG) ---
-@st.dialog("Resultado del Reconocimiento")
+# --- VENTANA DE RESULTADO ---
+@st.dialog("RESULTADO")
 def mostrar_resultado(prediccion, confianza, probabilidades):
-    # Crear dos columnas: una para el GIF animado y otra para el texto del resultado
+    if confianza > 80:
+        st.balloons()
+    
+    # Título colorido dentro del diálogo
+    st.markdown(colored_title(f"NUMERO {prediccion}"), unsafe_allow_html=True)
+    
     col_gif, col_txt = st.columns([1, 1.5])
     
     with col_gif:
-        # Intentamos cargar el GIF desde la carpeta 'gifs'
-        # El nombre del archivo debe ser 0.gif, 1.gif, etc.
         ruta_gif = f"gifs/{prediccion}.gif"
-        
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
         else:
-            # Si el GIF no está en una carpeta, lo busca en la raíz
-            ruta_raiz = f"{prediccion}.gif"
-            if os.path.exists(ruta_raiz):
-                st.image(ruta_raiz, use_container_width=True)
-            else:
-                st.warning(f"No se encontró {prediccion}.gif")
+            st.write("---")
 
     with col_txt:
-        st.write(f"## ¡Es un {prediccion}!")
-        st.write(f"**Confianza:** {confianza:.2f}%")
+        st.write(f"CONFIANZA: {confianza:.1f}%")
         st.progress(int(confianza))
     
-    st.write("---")
-    st.write("### Análisis de Probabilidades")
+    st.write("GRAFICA DE PUNTOS")
     
-    # Preparar datos para la gráfica de Altair
     chart_data = pd.DataFrame({
-        'Dígito': [str(i) for i in range(10)],
-        'Confianza': probabilidades
+        'Numero': [str(i) for i in range(10)],
+        'Puntaje': probabilidades
     })
 
-    # Gráfica de barras con el ganador resaltado en naranja
-    grafica = alt.Chart(chart_data).mark_bar().encode(
-        x=alt.X('Dígito', axis=alt.Axis(labelAngle=0, title="Número")),
-        y=alt.Y('Confianza', axis=alt.Axis(title="Probabilidad")),
+    grafica = alt.Chart(chart_data).mark_bar(cornerRadius=10).encode(
+        x=alt.X('Numero', axis=alt.Axis(labelAngle=0)),
+        y=alt.Y('Puntaje'),
         color=alt.condition(
-            alt.datum.Dígito == str(prediccion),
-            alt.value('orange'), # Color del número detectado
-            alt.value('steelblue') # Color del resto
+            alt.datum.Numero == str(prediccion),
+            alt.value('#FF4B4B'), 
+            alt.value('#4BFF4B')  
         )
     ).properties(height=250)
 
     st.altair_chart(grafica, use_container_width=True)
     
-    if st.button("Cerrar y Limpiar"):
+    if st.button("VOLVER A JUGAR"):
         st.rerun()
 
-# --- INTERFAZ PRINCIPAL ---
-st.title("🔢 Reconocedor de Dígitos con CNN")
-st.write("Dibuja un número grande y centrado en el cuadro negro.")
+# --- CUERPO PRINCIPAL ---
+st.markdown(colored_title("ADIVINA EL NUMERO"), unsafe_allow_html=True)
 
-# Configuración del Lienzo (Canvas)
+st.write("Dibuja un numero muy grande en el cuadro negro")
+
 canvas_result = st_canvas(
-    fill_color="rgba(255, 255, 255, 1)",
-    stroke_width=22, # Grosor ideal para MNIST
-    stroke_color="#FFFFFF",
-    background_color="#000000",
-    height=280,
-    width=280,
+    fill_color="white",
+    stroke_width=25,
+    stroke_color="white",
+    background_color="black",
+    height=300,
+    width=300,
     drawing_mode="freedraw",
     key="canvas",
 )
 
-# Lógica del botón de análisis
 if canvas_result.image_data is not None:
-    # Convertir datos del canvas a imagen de escala de grises
     img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
     
-    if st.button("Analizar Dibujo"):
-        # Verificar si el lienzo contiene dibujo (píxeles blancos)
+    if st.button("ADIVINAR"):
         if np.any(np.array(img) > 30):
-            # 1. Preprocesar (Redimensionar a 28x28 y normalizar)
             img_28 = img.resize((28, 28), Image.LANCZOS)
             img_array = np.array(img_28).astype('float32') / 255.0
             img_array = img_array.reshape(1, 28, 28, 1)
 
-            # 2. Inferencia con ONNX
             input_name = session.get_inputs()[0].name
             output_name = session.get_outputs()[0].name
             result = session.run([output_name], {input_name: img_array})[0][0]
             
-            # 3. Obtener resultados
             prediccion = np.argmax(result)
             confianza = float(result[prediccion] * 100)
 
-            # 4. Lanzar ventana emergente con el GIF
             mostrar_resultado(prediccion, confianza, result)
         else:
-            st.warning("El lienzo está vacío. Por favor, dibuja un número.")
-
-st.markdown("---")
-st.caption("Hecho con ❤️ para pequeños científicos")
-
+            st.write("DIBUJA ALGO PRIMERO")
