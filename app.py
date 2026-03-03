@@ -58,6 +58,18 @@ st.markdown("""
         box-shadow: 4px 4px 0px #000;
         margin: 0 auto;
     }
+
+    /* --- CAMBIO: ICONOS DE LA PAPELERA Y HERRAMIENTAS EN BLANCO --- */
+    .stCanvasToolbar button svg {
+        fill: #FFFFFF !important;
+        color: #FFFFFF !important;
+    }
+    
+    /* Opcional: un fondo un poco más oscuro para que resalten más */
+    .stCanvasToolbar {
+        background-color: rgba(0, 0, 0, 0.4) !important;
+        border-radius: 5px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -67,7 +79,6 @@ def titulo_animado(texto):
         if char == " ":
             html_title += '&nbsp;'
         else:
-            # Desfasamos la animación para cada letra para un efecto arcoíris
             delay = i * 0.1
             html_title += f'<span class="animated-letter" style="animation-delay: {delay}s;">{char}</span>'
     html_title += '</div>'
@@ -78,7 +89,10 @@ def titulo_animado(texto):
 def load_model():
     return ort.InferenceSession("modelo_digitos.onnx")
 
-session = load_model()
+try:
+    session = load_model()
+except Exception as e:
+    st.error("No se encontró el modelo ONNX.")
 
 # --- VENTANA DE RESULTADO ---
 @st.dialog("RESULTADO")
@@ -87,8 +101,7 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
     
     col_gif, col_txt = st.columns([1, 1.5])
     with col_gif:
-        # Intenta cargar el GIF animado
-        ruta_gif = f"Gifs/{prediccion}.gif"
+        ruta_gif = f"gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
         elif os.path.exists(f"{prediccion}.gif"):
@@ -145,15 +158,12 @@ if canvas_result.image_data is not None:
     img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
     
     st.write("") 
-    # Botón centrado mediante CSS
     if st.button("¿QUE NUMERO ES?"):
         if np.any(np.array(img) > 20):
-            # Preprocesar para el modelo (28x28)
             img_28 = img.resize((28, 28), Image.LANCZOS)
             img_array = np.array(img_28).astype('float32') / 255.0
             img_array = img_array.reshape(1, 28, 28, 1)
 
-            # Inferencia con ONNX
             input_name = session.get_inputs()[0].name
             output_name = session.get_outputs()[0].name
             result = session.run([output_name], {input_name: img_array})[0][0]
