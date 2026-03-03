@@ -10,9 +10,10 @@ import os
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Juego de Numeros", layout="wide")
 
-# 2. ESTILO CSS RETRO DEFINITIVO
+# 2. ESTILO CSS "NIVEL DIOS" PARA CENTRADO TOTAL
 st.markdown("""
     <style>
+    /* Fondo general */
     .stApp {
         background-image: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
         background-repeat: repeat;
@@ -39,7 +40,7 @@ st.markdown("""
         font-weight: bold;
         text-align: center;
         text-shadow: 3px 3px 0px #000;
-        margin-bottom: 10px;
+        margin-bottom: 20px;
     }
     
     .animated-letter {
@@ -47,53 +48,57 @@ st.markdown("""
         animation: color-change 2s infinite;
     }
 
-    /* FORZAR CENTRADO ABSOLUTO DEL CANVAS */
-    /* Este selector apunta al contenedor interno de Streamlit que envuelve el canvas */
-    [data-testid="stVerticalBlock"] > div:has(canvas) {
+    /* ELIMINAR ESPACIOS EXTRA DE STREAMLIT */
+    [data-testid="stVerticalBlock"] {
+        gap: 0rem;
+    }
+
+    /* FORZAR CENTRADO DEL CONTENEDOR DEL CANVAS */
+    /* Usamos un selector de alta jerarquía para anular el diseño de columnas de Streamlit */
+    div.stColumn > div > div > div > div:has(canvas) {
         display: flex !important;
         justify-content: center !important;
-        align-items: center !important;
-        width: 100% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        width: 350px !important; /* El mismo ancho que el canvas */
     }
 
     [data-testid="stCanvas"] {
-        border: 5px solid;
+        border: 6px solid;
         border-color: #ffffff #808080 #808080 #ffffff !important;
-        box-shadow: 8px 8px 0px #000;
+        box-shadow: 10px 10px 0px #000;
         background-color: black !important;
     }
 
-    /* Iconos de herramientas */
+    /* Iconos de herramientas visibles */
+    .stCanvasToolbar {
+        justify-content: center !important;
+    }
     .stCanvasToolbar button {
-        background-color: #444 !important;
-        border-radius: 5px;
-        margin: 2px;
+        background-color: #333 !important;
+        margin: 5px !important;
     }
     .stCanvasToolbar button svg {
         fill: white !important;
-        color: white !important;
     }
 
-    /* Botón Neón Parpadeante */
+    /* Botón Neón con centrado manual */
     @keyframes border-flicker {
         0% { border-color: #FF0000; box-shadow: 0 0 5px #FF0000; }
-        33% { border-color: #00FF00; box-shadow: 0 0 15px #00FF00; }
-        66% { border-color: #0000FF; box-shadow: 0 0 5px #0000FF; }
-        100% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; }
+        50% { border-color: #00FF00; box-shadow: 0 0 20px #00FF00; }
+        100% { border-color: #FF0000; box-shadow: 0 0 5px #FF0000; }
     }
 
     .stButton > button {
-        display: block;
-        margin: 30px auto !important;
+        display: block !important;
+        margin: 40px auto !important;
         background-color: #000 !important;
         color: #fff !important;
-        font-weight: bold;
-        font-size: 22px !important;
-        padding: 15px 30px !important;
-        border: 4px solid #FF0000 !important;
-        animation: border-flicker 1.5s infinite;
-        text-transform: uppercase;
-        width: fit-content !important;
+        font-size: 24px !important;
+        padding: 15px 40px !important;
+        border: 5px solid #FF0000 !important;
+        animation: border-flicker 1s infinite;
+        border-radius: 0px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -117,51 +122,40 @@ def load_model():
 try:
     session = load_model()
 except Exception as e:
-    st.error(f"Error al cargar el modelo: {e}")
+    st.error(f"Error: {e}")
 
-# --- VENTANA DE RESULTADO ---
-@st.dialog("¡MIRA EL RESULTADO!")
+# --- DIÁLOGO DE RESULTADO ---
+@st.dialog("¡TE HE PILLADO!")
 def mostrar_resultado(prediccion, confianza, probabilidades):
     st.markdown(titulo_animado(f"NUMERO {prediccion}"), unsafe_allow_html=True)
     
-    col_gif, col_txt = st.columns([1, 1.2])
+    col_gif, col_txt = st.columns([1, 1])
     with col_gif:
         ruta_gif = f"Gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
-        else:
-            st.write("🌈")
-
+    
     with col_txt:
         st.write(f"### CONFIANZA: {confianza:.1f}%")
         st.progress(int(confianza))
     
     st.write("---")
-    chart_data = pd.DataFrame({
-        'Número': [str(i) for i in range(10)],
-        'Probabilidad': probabilidades
-    })
-
-    grafica = alt.Chart(chart_data).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5).encode(
-        x=alt.X('Número', axis=alt.Axis(labelAngle=0)),
-        y=alt.Y('Probabilidad', axis=None),
-        color=alt.condition(
-            alt.datum.Número == str(prediccion),
-            alt.value('#FF4B4B'), 
-            alt.value('#4B8BFF')
-        )
+    chart_data = pd.DataFrame({'Num': [str(i) for i in range(10)], 'Prob': probabilidades})
+    grafica = alt.Chart(chart_data).mark_bar().encode(
+        x=alt.X('Num', axis=alt.Axis(labelAngle=0)),
+        y=alt.Y('Prob', axis=None),
+        color=alt.condition(alt.datum.Num == str(prediccion), alt.value('#FF4B4B'), alt.value('#4B8BFF'))
     ).properties(height=150)
-
     st.altair_chart(grafica, use_container_width=True)
     
-    if st.button("INTENTAR DE NUEVO"):
+    if st.button("BORRAR Y JUGAR"):
         st.rerun()
 
-# --- INTERFAZ PRINCIPAL ---
+# --- ESTRUCTURA PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINO TU NUMERO"), unsafe_allow_html=True)
 
-# 4. ESTRUCTURA DE COLUMNAS
-col_izq, col_centro, col_der = st.columns([1, 1.5, 1])
+# Usamos columnas muy estrechas a los lados para "empujar" el centro
+col_izq, col_centro, col_der = st.columns([1, 1.2, 1])
 
 with col_izq:
     if os.path.exists("Gifs/pollo.png"):
@@ -172,10 +166,10 @@ with col_der:
         st.image("Gifs/brsm.png", use_container_width=True)
 
 with col_centro:
-    # El canvas ahora está forzado al centro por el CSS de arriba
+    # Este canvas ahora tiene un ancho fijo forzado por CSS
     canvas_result = st_canvas(
         fill_color="white",
-        stroke_width=25,
+        stroke_width=28,
         stroke_color="white",
         background_color="black",
         height=350,
@@ -185,7 +179,7 @@ with col_centro:
         display_toolbar=True,
     )
     
-    st.write("<p style='text-align:center; font-weight:bold; color: white;'>Dibuja un numero grande arriba</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; font-weight:bold; color:white;'>Escribe un número bien grande</p>", unsafe_allow_html=True)
     
     if st.button("¿QUE NUMERO ES?"):
         img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
@@ -194,13 +188,9 @@ with col_centro:
             img_array = np.array(img_28).astype('float32') / 255.0
             img_array = img_array.reshape(1, 28, 28, 1)
 
-            input_name = session.get_inputs()[0].name
-            output_name = session.get_outputs()[0].name
-            result = session.run([output_name], {input_name: img_array})[0][0]
-            
-            prediccion = np.argmax(result)
-            confianza = float(result[prediccion] * 100)
-
-            mostrar_resultado(prediccion, confianza, result)
+            res = session.run(None, {session.get_inputs()[0].name: img_array})[0][0]
+            pred = np.argmax(res)
+            conf = float(res[pred] * 100)
+            mostrar_resultado(pred, conf, res)
         else:
-            st.warning("¡Dibuja algo primero!")
+            st.warning("¡Primero dibuja algo!")
