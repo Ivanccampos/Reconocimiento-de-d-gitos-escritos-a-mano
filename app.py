@@ -10,10 +10,9 @@ import os
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Juego de Numeros", layout="wide")
 
-# 2. ESTILO CSS "NIVEL DIOS" PARA CENTRADO TOTAL
+# 2. ESTILO CSS "VINTAGE" Y MEJORAS DE VISIBILIDAD
 st.markdown("""
     <style>
-    /* Fondo general */
     .stApp {
         background-image: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
         background-repeat: repeat;
@@ -48,19 +47,12 @@ st.markdown("""
         animation: color-change 2s infinite;
     }
 
-    /* ELIMINAR ESPACIOS EXTRA DE STREAMLIT */
-    [data-testid="stVerticalBlock"] {
-        gap: 0rem;
-    }
-
-    /* FORZAR CENTRADO DEL CONTENEDOR DEL CANVAS */
-    /* Usamos un selector de alta jerarquía para anular el diseño de columnas de Streamlit */
+    /* CENTRADO ABSOLUTO DEL CANVAS */
     div.stColumn > div > div > div > div:has(canvas) {
         display: flex !important;
         justify-content: center !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-        width: 350px !important; /* El mismo ancho que el canvas */
+        margin: 0 auto !important;
+        width: 350px !important;
     }
 
     [data-testid="stCanvas"] {
@@ -70,19 +62,39 @@ st.markdown("""
         background-color: black !important;
     }
 
-    /* Iconos de herramientas visibles */
+    /* ICONO DE BORRAR Y HERRAMIENTAS ULTRA VISIBLES */
     .stCanvasToolbar {
         justify-content: center !important;
+        background-color: rgba(255, 255, 255, 0.1);
+        padding: 5px;
+        border-radius: 10px;
     }
+    
+    /* Estilo para los botones de la papelera y deshacer */
     .stCanvasToolbar button {
-        background-color: #333 !important;
+        background-color: #FFFF00 !important; /* Amarillo fluorescente */
+        border: 2px solid black !important;
+        border-radius: 5px !important;
         margin: 5px !important;
+        width: 45px !important;
+        height: 45px !important;
+        transition: transform 0.2s;
     }
-    .stCanvasToolbar button svg {
-        fill: white !important;
+    
+    .stCanvasToolbar button:hover {
+        transform: scale(1.2);
+        background-color: #FF00FF !important; /* Cambia a rosa al pasar el ratón */
     }
 
-    /* Botón Neón con centrado manual */
+    /* Forzar que los iconos internos sean negros y grandes */
+    .stCanvasToolbar button svg {
+        fill: #000000 !important;
+        color: #000000 !important;
+        width: 25px !important;
+        height: 25px !important;
+    }
+
+    /* Botón Principal Neón */
     @keyframes border-flicker {
         0% { border-color: #FF0000; box-shadow: 0 0 5px #FF0000; }
         50% { border-color: #00FF00; box-shadow: 0 0 20px #00FF00; }
@@ -154,7 +166,6 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
 # --- ESTRUCTURA PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINO TU NUMERO"), unsafe_allow_html=True)
 
-# Usamos columnas muy estrechas a los lados para "empujar" el centro
 col_izq, col_centro, col_der = st.columns([1, 1.2, 1])
 
 with col_izq:
@@ -166,7 +177,6 @@ with col_der:
         st.image("Gifs/brsm.png", use_container_width=True)
 
 with col_centro:
-    # Este canvas ahora tiene un ancho fijo forzado por CSS
     canvas_result = st_canvas(
         fill_color="white",
         stroke_width=28,
