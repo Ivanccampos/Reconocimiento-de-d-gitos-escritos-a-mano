@@ -67,4 +67,22 @@ if canvas_result.image_data is not None:
     img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
     
     if st.button("Analizar Dibujo"):
-        # Solo procesar si el lienzo
+        # Solo procesar si el lienzo no está vacío
+        if np.any(np.array(img) > 20):
+            # Preprocesar
+            img_28 = img.resize((28, 28), Image.LANCZOS)
+            img_array = np.array(img_28).astype('float32') / 255.0
+            img_array = img_array.reshape(1, 28, 28, 1)
+
+            # Inferencia
+            input_name = session.get_inputs()[0].name
+            output_name = session.get_outputs()[0].name
+            result = session.run([output_name], {input_name: img_array})[0][0]
+            
+            prediccion = np.argmax(result)
+            confianza = result[prediccion] * 100
+
+            # Llamar a la ventana emergente
+            mostrar_resultado(prediccion, confianza, result)
+        else:
+            st.warning("Por favor, dibuja algo primero.")
