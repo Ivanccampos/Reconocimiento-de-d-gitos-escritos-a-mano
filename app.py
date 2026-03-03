@@ -10,10 +10,9 @@ import os
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Juego de Numeros", layout="wide")
 
-# 2. ESTILO CSS RETRO COMPLETO
+# 2. ESTILO CSS RETRO DEFINITIVO
 st.markdown("""
     <style>
-    /* Fondo de mosaico */
     .stApp {
         background-image: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
         background-repeat: repeat;
@@ -48,17 +47,23 @@ st.markdown("""
         animation: color-change 2s infinite;
     }
 
-    /* CENTRADO DEL CANVAS Y ELIMINACIÓN DE CUADRO NEGRO SOBRANTE */
+    /* FORZAR CENTRADO ABSOLUTO DEL CANVAS */
+    /* Este selector apunta al contenedor interno de Streamlit que envuelve el canvas */
+    [data-testid="stVerticalBlock"] > div:has(canvas) {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+    }
+
     [data-testid="stCanvas"] {
-        display: table !important; /* Ajusta el ancho al contenido (350px) */
-        margin: 0 auto !important; /* Centra el componente */
         border: 5px solid;
         border-color: #ffffff #808080 #808080 #ffffff !important;
         box-shadow: 8px 8px 0px #000;
+        background-color: black !important;
     }
 
-    /* ICONOS DE LA HERRAMIENTA EN MODO CLARO/OSCURO */
-    /* Invertimos el color de los iconos de la papelera/deshacer para que se vean */
+    /* Iconos de herramientas */
     .stCanvasToolbar button {
         background-color: #444 !important;
         border-radius: 5px;
@@ -69,7 +74,7 @@ st.markdown("""
         color: white !important;
     }
 
-    /* BOTÓN CON BORDE PARPADEANTE NEÓN */
+    /* Botón Neón Parpadeante */
     @keyframes border-flicker {
         0% { border-color: #FF0000; box-shadow: 0 0 5px #FF0000; }
         33% { border-color: #00FF00; box-shadow: 0 0 15px #00FF00; }
@@ -79,7 +84,7 @@ st.markdown("""
 
     .stButton > button {
         display: block;
-        margin: 20px auto;
+        margin: 30px auto !important;
         background-color: #000 !important;
         color: #fff !important;
         font-weight: bold;
@@ -88,6 +93,7 @@ st.markdown("""
         border: 4px solid #FF0000 !important;
         animation: border-flicker 1.5s infinite;
         text-transform: uppercase;
+        width: fit-content !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -103,7 +109,7 @@ def titulo_animado(texto):
     html_title += '</div>'
     return html_title
 
-# 3. CARGAR MODELO ONNX
+# 3. CARGAR MODELO
 @st.cache_resource
 def load_model():
     return ort.InferenceSession("modelo_digitos.onnx")
@@ -154,8 +160,8 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
 # --- INTERFAZ PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINO TU NUMERO"), unsafe_allow_html=True)
 
-# 4. DISPOSICIÓN: [POLLO] [CANVAS CENTRADO] [BARRIO SÉSAMO]
-col_izq, col_centro, col_der = st.columns([1, 2, 1])
+# 4. ESTRUCTURA DE COLUMNAS
+col_izq, col_centro, col_der = st.columns([1, 1.5, 1])
 
 with col_izq:
     if os.path.exists("Gifs/pollo.png"):
@@ -166,7 +172,7 @@ with col_der:
         st.image("Gifs/brsm.png", use_container_width=True)
 
 with col_centro:
-    # Contenedor para el canvas
+    # El canvas ahora está forzado al centro por el CSS de arriba
     canvas_result = st_canvas(
         fill_color="white",
         stroke_width=25,
@@ -179,7 +185,7 @@ with col_centro:
         display_toolbar=True,
     )
     
-    st.write("<p style='text-align:center; font-weight:bold;'>Dibuja un numero grande arriba</p>", unsafe_allow_html=True)
+    st.write("<p style='text-align:center; font-weight:bold; color: white;'>Dibuja un numero grande arriba</p>", unsafe_allow_html=True)
     
     if st.button("¿QUE NUMERO ES?"):
         img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
