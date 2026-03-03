@@ -89,6 +89,7 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
     
     col_gif, col_txt = st.columns([1, 1.2])
     with col_gif:
+        # Aquí es donde aparecerá el 0.gif SOLO si la predicción es 0
         ruta_gif = f"Gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
@@ -114,19 +115,20 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
 # --- INTERFAZ PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINA EL NUMERO"), unsafe_allow_html=True)
 
-# Galería de imágenes superior
-cols = st.columns(5)
+# Galería de imágenes superior (HE QUITADO EL 0.GIF DE AQUÍ)
+cols = st.columns(4) # Ahora solo 4 columnas
 with cols[0]:
-    if os.path.exists("Gifs/0.gif"): st.image("Gifs/0.gif", use_container_width=True)
+    if os.path.exists("Gifs/pollo.jpg"): 
+        st.image("Gifs/pollo.jpg", use_container_width=True)
 with cols[1]:
-    if os.path.exists("Gifs/pollo.jpg"): st.image("Gifs/pollo.jpg", use_container_width=True)
-with cols[2]:
     # Pocoyo Dance
     st.image("https://media.tenor.com/pocoyo-dance.gif", use_container_width=True)
+with cols[2]:
+    if os.path.exists("Gifs/brsm.jpg"): 
+        st.image("Gifs/brsm.jpg", use_container_width=True)
 with cols[3]:
-    if os.path.exists("Gifs/brsm.jpg"): st.image("Gifs/brsm.jpg", use_container_width=True)
-with cols[4]:
-    if os.path.exists("Gifs/image_992305.png"): st.image("Gifs/image_992305.png", use_container_width=True)
+    if os.path.exists("Gifs/image_992305.png"): 
+        st.image("Gifs/image_992305.png", use_container_width=True)
 
 st.write("<h3 style='text-align:center;'>Dibuja un numero grande en el cuadro negro</h3>", unsafe_allow_html=True)
 
@@ -144,7 +146,7 @@ with c2:
         key="canvas",
     )
 
-    st.write("") # Espacio
+    st.write("") 
     if st.button("¿QUE NUMERO ES?"):
         img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
         if np.any(np.array(img) > 20):
