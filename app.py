@@ -59,16 +59,20 @@ st.markdown("""
         margin: 0 auto;
     }
 
-    /* --- CAMBIO: ICONOS DE LA PAPELERA Y HERRAMIENTAS EN BLANCO --- */
+    /* --- SOLUCIÓN DEFINITIVA: ICONOS BLANCOS --- */
+    /* Forzamos el color de los iconos (SVG) a blanco */
     .stCanvasToolbar button svg {
-        fill: #FFFFFF !important;
-        color: #FFFFFF !important;
+        fill: white !important;
+        stroke: white !important;
+        filter: brightness(0) invert(1) !important; /* Esto convierte cualquier color en blanco puro */
     }
-    
-    /* Opcional: un fondo un poco más oscuro para que resalten más */
+
+    /* Estilo para que la barra de herramientas sea más visible */
     .stCanvasToolbar {
-        background-color: rgba(0, 0, 0, 0.4) !important;
-        border-radius: 5px;
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        border-radius: 8px !important;
+        padding: 4px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -92,7 +96,7 @@ def load_model():
 try:
     session = load_model()
 except Exception as e:
-    st.error("No se encontró el modelo ONNX.")
+    st.error("Error al cargar el modelo.")
 
 # --- VENTANA DE RESULTADO ---
 @st.dialog("RESULTADO")
