@@ -127,7 +127,7 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
         st.rerun()
 
 # --- INTERFAZ PRINCIPAL ---
-st.markdown(titulo_animado("ADIVINA EL NUMERO"), unsafe_allow_html=True)
+st.markdown(titulo_animado("ADIVINO TU NUMERO"), unsafe_allow_html=True)
 
 # 4. DISPOSICIÓN EQUILIBRADA: [POLLO] [CANVAS] [BARRIO SÉSAMO]
 col_izq, col_centro, col_der = st.columns([1, 2, 1])
@@ -169,3 +169,4 @@ with col_centro:
             mostrar_resultado(prediccion, confianza, result)
         else:
             st.warning("¡Dibuja algo primero!")
+
