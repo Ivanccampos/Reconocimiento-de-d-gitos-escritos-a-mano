@@ -72,7 +72,7 @@ def ventana_resultado(prediccion, confianza, probabilidades):
     
     with col_izq:
         # Buscamos el GIF correspondiente al numero predicho
-        ruta_gif = f"gifs/{prediccion}.gif"
+        ruta_gif = f"Gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
         elif os.path.exists(f"{prediccion}.gif"):
@@ -150,3 +150,4 @@ if canvas_result.image_data is not None:
             ventana_resultado(num_final, prob_final, pred_raw)
         else:
             st.warning("Dibuja algo primero")
+
