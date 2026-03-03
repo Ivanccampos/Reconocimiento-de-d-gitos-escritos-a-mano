@@ -105,7 +105,7 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
     
     col_gif, col_txt = st.columns([1, 1.5])
     with col_gif:
-        ruta_gif = f"gifs/{prediccion}.gif"
+        ruta_gif = f"Gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
         elif os.path.exists(f"{prediccion}.gif"):
@@ -178,3 +178,4 @@ if canvas_result.image_data is not None:
             mostrar_resultado(prediccion, confianza, result)
         else:
             st.warning("Dibuja algo primero")
+
