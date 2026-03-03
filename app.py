@@ -6,25 +6,27 @@ from PIL import Image
 import pandas as pd
 import altair as alt
 import os
-import random
 
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Juego de Numeros", layout="wide")
 
-# 2. ESTILO CSS RETRO
+# 2. ESTILO CSS RETRO COMPLETO
 st.markdown("""
     <style>
+    /* Fondo de mosaico */
     .stApp {
         background-image: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
         background-repeat: repeat;
         background-attachment: fixed;
     }
+    
     @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
     
     html, body, [class*="st-"] {
         font-family: 'Comic Sans MS', 'Comic Neue', cursive !important;
     }
 
+    /* Título Animado */
     @keyframes color-change {
         0% { color: #FF5733; }
         25% { color: #33FF57; }
@@ -46,21 +48,46 @@ st.markdown("""
         animation: color-change 2s infinite;
     }
 
+    /* CENTRADO DEL CANVAS Y ELIMINACIÓN DE CUADRO NEGRO SOBRANTE */
     [data-testid="stCanvas"] {
-        border: 4px solid;
+        display: table !important; /* Ajusta el ancho al contenido (350px) */
+        margin: 0 auto !important; /* Centra el componente */
+        border: 5px solid;
         border-color: #ffffff #808080 #808080 #ffffff !important;
-        box-shadow: 6px 6px 0px #000;
-        margin: 0 auto;
+        box-shadow: 8px 8px 0px #000;
+    }
+
+    /* ICONOS DE LA HERRAMIENTA EN MODO CLARO/OSCURO */
+    /* Invertimos el color de los iconos de la papelera/deshacer para que se vean */
+    .stCanvasToolbar button {
+        background-color: #444 !important;
+        border-radius: 5px;
+        margin: 2px;
+    }
+    .stCanvasToolbar button svg {
+        fill: white !important;
+        color: white !important;
+    }
+
+    /* BOTÓN CON BORDE PARPADEANTE NEÓN */
+    @keyframes border-flicker {
+        0% { border-color: #FF0000; box-shadow: 0 0 5px #FF0000; }
+        33% { border-color: #00FF00; box-shadow: 0 0 15px #00FF00; }
+        66% { border-color: #0000FF; box-shadow: 0 0 5px #0000FF; }
+        100% { border-color: #FF0000; box-shadow: 0 0 15px #FF0000; }
     }
 
     .stButton > button {
         display: block;
         margin: 20px auto;
-        background-color: #ffeb3b;
-        border: 2px solid black;
+        background-color: #000 !important;
+        color: #fff !important;
         font-weight: bold;
-        font-size: 20px;
-        color: black;
+        font-size: 22px !important;
+        padding: 15px 30px !important;
+        border: 4px solid #FF0000 !important;
+        animation: border-flicker 1.5s infinite;
+        text-transform: uppercase;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -83,10 +110,10 @@ def load_model():
 
 try:
     session = load_model()
-except:
-    st.error("Archivo modelo_digitos.onnx no encontrado")
+except Exception as e:
+    st.error(f"Error al cargar el modelo: {e}")
 
-# --- VENTANA DE RESULTADO CON GRÁFICA ---
+# --- VENTANA DE RESULTADO ---
 @st.dialog("¡MIRA EL RESULTADO!")
 def mostrar_resultado(prediccion, confianza, probabilidades):
     st.markdown(titulo_animado(f"NUMERO {prediccion}"), unsafe_allow_html=True)
@@ -104,8 +131,6 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
         st.progress(int(confianza))
     
     st.write("---")
-    st.write("### ¿CUÁNTO SE PARECE A OTROS NÚMEROS?")
-    
     chart_data = pd.DataFrame({
         'Número': [str(i) for i in range(10)],
         'Probabilidad': probabilidades
@@ -123,13 +148,13 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
 
     st.altair_chart(grafica, use_container_width=True)
     
-    if st.button("VOLVER A JUGAR"):
+    if st.button("INTENTAR DE NUEVO"):
         st.rerun()
 
 # --- INTERFAZ PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINO TU NUMERO"), unsafe_allow_html=True)
 
-# 4. DISPOSICIÓN EQUILIBRADA: [POLLO] [CANVAS] [BARRIO SÉSAMO]
+# 4. DISPOSICIÓN: [POLLO] [CANVAS CENTRADO] [BARRIO SÉSAMO]
 col_izq, col_centro, col_der = st.columns([1, 2, 1])
 
 with col_izq:
@@ -141,6 +166,7 @@ with col_der:
         st.image("Gifs/brsm.png", use_container_width=True)
 
 with col_centro:
+    # Contenedor para el canvas
     canvas_result = st_canvas(
         fill_color="white",
         stroke_width=25,
@@ -150,7 +176,10 @@ with col_centro:
         width=350,
         drawing_mode="freedraw",
         key="canvas",
+        display_toolbar=True,
     )
+    
+    st.write("<p style='text-align:center; font-weight:bold;'>Dibuja un numero grande arriba</p>", unsafe_allow_html=True)
     
     if st.button("¿QUE NUMERO ES?"):
         img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
@@ -169,4 +198,3 @@ with col_centro:
             mostrar_resultado(prediccion, confianza, result)
         else:
             st.warning("¡Dibuja algo primero!")
-
