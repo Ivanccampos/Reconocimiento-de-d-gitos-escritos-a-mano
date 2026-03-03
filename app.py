@@ -10,36 +10,38 @@ import os
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Juego de Numeros", layout="wide")
 
-# 2. CSS DE ALTO CONTRASTE (IGNORA EL MODO DEL NAVEGADOR)
+# 2. CSS CON GRID OSCURO Y ALTO CONTRASTE
 st.markdown("""
     <style>
-    /* Forzamos el fondo de toda la pantalla a un gris claro neutro */
+    /* Fondo con Grid/Mosaico en tonalidad oscura */
     .stApp {
-        background-color: #E5E7EB !important;
+        background-color: #1a1c23 !important; /* Gris casi negro */
         background-image: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
+        background-repeat: repeat;
+        background-attachment: fixed;
     }
     
     @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
     
-    /* Forzamos color de texto negro en toda la app */
-    html, body, [class*="st-"], p, h1, h2, h3 {
+    /* Forzamos texto claro para que se lea bien sobre el fondo oscuro */
+    html, body, [class*="st-"], p, h1, h2, h3, span, label {
         font-family: 'Comic Sans MS', 'Comic Neue', cursive !important;
-        color: #1F2937 !important;
+        color: #ffffff !important;
     }
 
-    /* Título Animado con sombra para legibilidad */
+    /* Título Animado */
     @keyframes color-change {
         0% { color: #FF5733; }
-        25% { color: #22C55E; }
-        50% { color: #3B82F6; }
-        75% { color: #D946EF; }
+        25% { color: #33FF57; }
+        50% { color: #3357FF; }
+        75% { color: #F333FF; }
         100% { color: #FF5733; }
     }
     .comic-font {
         font-size: 55px;
         font-weight: bold;
         text-align: center;
-        text-shadow: 2px 2px 0px #FFFFFF;
+        text-shadow: 3px 3px 0px #000;
         margin-bottom: 20px;
     }
     .animated-letter {
@@ -47,64 +49,61 @@ st.markdown("""
         animation: color-change 2s infinite;
     }
 
-    /* CONTENEDOR DEL CANVAS: Centrado y con fondo oscuro fijo */
+    /* CENTRADO DEL CANVAS */
     div.stColumn > div > div > div > div:has(canvas) {
         display: flex !important;
         justify-content: center !important;
         margin: 0 auto !important;
-        width: 370px !important; /* Un poco más ancho que el canvas para el padding */
-        background-color: #111827 !important; /* Azul oscuro casi negro */
-        padding: 10px !important;
-        border-radius: 15px !important;
-        border: 4px solid #374151 !important;
+        width: 350px !important;
+        background-color: #000000 !important;
+        border: 4px solid #444 !important;
+        border-radius: 10px;
+        box-shadow: 0px 0px 20px rgba(0,0,0,0.5);
     }
 
     [data-testid="stCanvas"] {
         background-color: #000000 !important;
-        border: 2px solid #4B5563 !important;
     }
 
-    /* BARRA DE HERRAMIENTAS: Siempre visible */
+    /* ICONOS DE HERRAMIENTAS ULTRA VISIBLES */
     .stCanvasToolbar {
         justify-content: center !important;
-        background-color: #1F2937 !important;
-        padding: 5px !important;
+        background-color: #333 !important;
         border-radius: 8px !important;
+        padding: 5px !important;
     }
-    
     .stCanvasToolbar button {
-        background-color: #FACC15 !important; /* Amarillo brillante */
+        background-color: #FFFF00 !important; /* Amarillo */
         border: 2px solid #000 !important;
         margin: 5px !important;
-        color: #000 !important;
     }
-    
     .stCanvasToolbar button svg {
         fill: #000 !important;
     }
 
-    /* BOTÓN DE PREDICCIÓN */
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.05); }
-        100% { transform: scale(1); }
+    /* BOTÓN PRINCIPAL NEÓN */
+    @keyframes pulse-red {
+        0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+        70% { box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
     }
     .stButton > button {
         display: block !important;
         margin: 30px auto !important;
-        background-color: #EF4444 !important; /* Rojo */
+        background-color: #ff0000 !important;
         color: white !important;
         font-size: 24px !important;
-        border: 4px solid #000 !important;
+        border: 3px solid #fff !important;
         border-radius: 10px !important;
-        box-shadow: 5px 5px 0px #000 !important;
-        animation: pulse 2s infinite;
+        padding: 15px 40px !important;
+        animation: pulse-red 2s infinite;
+        text-transform: uppercase;
     }
     </style>
     """, unsafe_allow_html=True)
 
 def titulo_animado(texto):
-    html_title = '<div class="comic-font">'
+    html_title = f'<div class="comic-font">'
     for i, char in enumerate(texto):
         if char == " ":
             html_title += '&nbsp;'
@@ -114,7 +113,7 @@ def titulo_animado(texto):
     html_title += '</div>'
     return html_title
 
-# 3. MODELO Y LÓGICA
+# 3. CARGAR MODELO
 @st.cache_resource
 def load_model():
     return ort.InferenceSession("modelo_digitos.onnx")
@@ -124,29 +123,36 @@ try:
 except Exception as e:
     st.error(f"Error: {e}")
 
+# --- DIÁLOGO DE RESULTADO ---
 @st.dialog("¡RESULTADO!")
 def mostrar_resultado(prediccion, confianza, probabilidades):
-    st.markdown(titulo_animado(f"ES EL {prediccion}"), unsafe_allow_html=True)
+    st.markdown(titulo_animado(f"NUMERO {prediccion}"), unsafe_allow_html=True)
     col1, col2 = st.columns(2)
     with col1:
-        if os.path.exists(f"Gifs/{prediccion}.gif"):
-            st.image(f"Gifs/{prediccion}.gif")
+        ruta_gif = f"Gifs/{prediccion}.gif"
+        if os.path.exists(ruta_gif):
+            st.image(ruta_gif)
     with col2:
-        st.metric("Confianza", f"{confianza:.1f}%")
+        st.write(f"### Confianza: {confianza:.1f}%")
         st.progress(int(confianza))
     
-    chart_data = pd.DataFrame({'N': [str(i) for i in range(10)], 'P': probabilidades})
+    st.write("---")
+    # Gráfica de probabilidades
+    chart_data = pd.DataFrame({'Número': [str(i) for i in range(10)], 'Probabilidad': probabilidades})
     chart = alt.Chart(chart_data).mark_bar().encode(
-        x='N', y='P', color=alt.condition(alt.datum.N == str(prediccion), alt.value('#EF4444'), alt.value('#3B82F6'))
-    ).properties(height=150)
+        x=alt.X('Número', axis=alt.Axis(labelAngle=0, labelColor='white')),
+        y=alt.Y('Probabilidad', axis=None),
+        color=alt.condition(alt.datum.Número == str(prediccion), alt.value('#FF4B4B'), alt.value('#4B8BFF'))
+    ).properties(height=150).configure_view(strokeOpacity=0)
     st.altair_chart(chart, use_container_width=True)
-    if st.button("VOLVER"):
+    
+    if st.button("INTENTAR OTRA VEZ"):
         st.rerun()
 
-# --- INTERFAZ ---
+# --- ESTRUCTURA ---
 st.markdown(titulo_animado("ADIVINO TU NUMERO"), unsafe_allow_html=True)
 
-col_izq, col_centro, col_der = st.columns([1, 1.5, 1])
+col_izq, col_centro, col_der = st.columns([1, 1.2, 1])
 
 with col_izq:
     if os.path.exists("Gifs/pollo.png"):
@@ -169,7 +175,7 @@ with col_centro:
         display_toolbar=True,
     )
     
-    st.markdown("<p style='text-align:center; font-weight:bold;'>Dibuja el número aquí arriba</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; font-weight:bold; font-size:18px;'>Escribe un número aquí arriba</p>", unsafe_allow_html=True)
     
     if st.button("¿QUE NUMERO ES?"):
         img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
