@@ -11,23 +11,21 @@ import random
 # Configuración de la página
 st.set_page_config(page_title="Juego de Numeros", layout="centered")
 
-# --- ESTILO CSS FORZADO (MODO OSCURO PERMANENTE) ---
+# --- ESTILO CSS RETRO, CENTRADO Y ANIMACIÓN DE COLORES ---
 st.markdown("""
     <style>
-    /* Forzamos el fondo oscuro y el patrón de diamantes */
+    /* Fondo de mosaico repetitivo */
     .stApp {
-        background-color: #1a1c23 !important; /* Color base oscuro */
         background-image: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
         background-repeat: repeat;
         background-attachment: fixed;
     }
 
-    /* Fuente Comic Sans y forzado de color de texto blanco */
+    /* Fuente Comic Sans */
     @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
     
-    html, body, [class*="st-"], p, div, span, label {
+    html, body, [class*="st-"] {
         font-family: 'Comic Sans MS', 'Comic Neue', cursive !important;
-        color: #ffffff !important; /* Texto siempre blanco */
     }
 
     /* Animación para que las letras cambien de color */
@@ -44,7 +42,7 @@ st.markdown("""
         font-size: 48px;
         font-weight: bold;
         text-align: center;
-        text-shadow: 3px 3px 0px #000;
+        text-shadow: 2px 2px 0px #000;
         margin-bottom: 20px;
     }
     
@@ -59,24 +57,6 @@ st.markdown("""
         border-color: #ffffff #808080 #808080 #ffffff !important;
         box-shadow: 4px 4px 0px #000;
         margin: 0 auto;
-        background-color: #000000 !important;
-    }
-
-    /* Ajuste para la barra de herramientas del canvas para que sea visible */
-    .stCanvasToolbar {
-        background-color: #333 !important;
-        border-radius: 5px;
-        padding: 5px;
-    }
-    
-    .stCanvasToolbar button svg {
-        fill: white !important;
-    }
-
-    /* Estilo del Diálogo (Pop-up) para que sea oscuro */
-    div[role="dialog"] {
-        background-color: #1a1c23 !important;
-        border: 2px solid #444 !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -87,6 +67,7 @@ def titulo_animado(texto):
         if char == " ":
             html_title += '&nbsp;'
         else:
+            # Desfasamos la animación para cada letra para un efecto arcoíris
             delay = i * 0.1
             html_title += f'<span class="animated-letter" style="animation-delay: {delay}s;">{char}</span>'
     html_title += '</div>'
@@ -97,10 +78,7 @@ def titulo_animado(texto):
 def load_model():
     return ort.InferenceSession("modelo_digitos.onnx")
 
-try:
-    session = load_model()
-except Exception as e:
-    st.error(f"Error al cargar el modelo: {e}")
+session = load_model()
 
 # --- VENTANA DE RESULTADO ---
 @st.dialog("RESULTADO")
@@ -109,9 +87,12 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
     
     col_gif, col_txt = st.columns([1, 1.5])
     with col_gif:
-        ruta_gif = f"gifs/{prediccion}.gif"
+        # Intenta cargar el GIF animado
+        ruta_gif = f"Gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
+        elif os.path.exists(f"{prediccion}.gif"):
+            st.image(f"{prediccion}.gif", use_container_width=True)
         else:
             st.write("✨")
 
@@ -126,14 +107,14 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
     })
 
     grafica = alt.Chart(chart_data).mark_bar().encode(
-        x=alt.X('Numero', axis=alt.Axis(labelAngle=0, labelColor='white')),
+        x=alt.X('Numero', axis=alt.Axis(labelAngle=0)),
         y=alt.Y('Puntaje', axis=None),
         color=alt.condition(
             alt.datum.Numero == str(prediccion),
             alt.value('#FF4B4B'), 
             alt.value('#4B8BFF')  
         )
-    ).properties(height=200).configure_view(strokeOpacity=0)
+    ).properties(height=200)
 
     st.altair_chart(grafica, use_container_width=True)
     
@@ -142,7 +123,7 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
 
 # --- INTERFAZ PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINA EL NUMERO"), unsafe_allow_html=True)
-st.write("<p style='text-align:center; font-weight:bold;'>Dibuja un numero grande en el cuadro negro</p>", unsafe_allow_html=True)
+st.write("<p style='text-align:center;'>Dibuja un numero grande en el cuadro negro</p>", unsafe_allow_html=True)
 
 # 2. Centrado del Canvas
 col1, col2, col3 = st.columns([1, 2, 1])
@@ -164,12 +145,15 @@ if canvas_result.image_data is not None:
     img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
     
     st.write("") 
+    # Botón centrado mediante CSS
     if st.button("¿QUE NUMERO ES?"):
         if np.any(np.array(img) > 20):
+            # Preprocesar para el modelo (28x28)
             img_28 = img.resize((28, 28), Image.LANCZOS)
             img_array = np.array(img_28).astype('float32') / 255.0
             img_array = img_array.reshape(1, 28, 28, 1)
 
+            # Inferencia con ONNX
             input_name = session.get_inputs()[0].name
             output_name = session.get_outputs()[0].name
             result = session.run([output_name], {input_name: img_array})[0][0]
