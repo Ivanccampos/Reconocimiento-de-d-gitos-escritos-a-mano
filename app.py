@@ -26,7 +26,7 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
     with col_gif:
         # Intentamos cargar el GIF desde la carpeta 'gifs'
         # El nombre del archivo debe ser 0.gif, 1.gif, etc.
-        ruta_gif = f"gifs/{prediccion}.gif"
+        ruta_gif = f"Gifs/{prediccion}.gif"
         
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
@@ -110,3 +110,4 @@ if canvas_result.image_data is not None:
             mostrar_resultado(prediccion, confianza, result)
         else:
             st.warning("El lienzo está vacío. Por favor, dibuja un número.")
+
