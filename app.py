@@ -81,8 +81,8 @@ st.markdown("""
 # Inyección de las imágenes flotantes HTML
 st.markdown(f"""
     <img src="https://media.tenor.com/On7_2777698AAAAC/pocoyo-dance.gif" class="floating-img img-pocoyo">
-    <img src="app/static/Gifs/pollo.jpg" class="floating-img img-pollo" onerror="this.style.display='none'">
-    <img src="app/static/Gifs/brsm.jpg" class="floating-img img-brsm" onerror="this.style.display='none'">
+    <img src="app/static/Gifs/pollo.png" class="floating-img img-pollo" onerror="this.style.display='none'">
+    <img src="app/static/Gifs/brsm.png" class="floating-img img-brsm" onerror="this.style.display='none'">
     <img src="app/static/Gifs/image_992305.png" class="floating-img img-decor" onerror="this.style.display='none'">
     """, unsafe_allow_html=True)
 
@@ -156,5 +156,6 @@ with c2:
             pred = np.argmax(res)
             conf = float(res[pred] * 100)
             mostrar_resultado(pred, conf, res)
+
 
 
