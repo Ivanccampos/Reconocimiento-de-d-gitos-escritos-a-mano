@@ -11,18 +11,32 @@ import random
 # Configuracion de la pagina
 st.set_page_config(page_title="Juego de Numeros", layout="centered")
 
-# --- ESTILO CSS PARA COMIC SANS Y LETRAS DE COLORES ---
+# --- ESTILO CSS PARA EL "EARLY INTERNET" Y LETRAS DE COLORES ---
 st.markdown("""
     <style>
+    /* 1. Fondo de pantalla de mosaico repetitivo */
+    /* Puedes cambiar esta URL por cualquier patron clásico de los 90s */
+    .stApp {
+        background-image: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
+        background-repeat: repeat;
+        background-attachment: fixed;
+    }
+
+    /* 2. Tipografía Comic Sans para todo el texto */
     @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
     
+    html, body, {
+        font-family: 'Comic Sans MS', 'Comic Neue', cursive !important;
+    }
+
+    /* 3. Estilo de los títulos de colores */
     .comic-font {
-        font-family: 'Comic Sans MS', 'Comic Neue', cursive;
         font-size: 48px;
         font-weight: bold;
         text-align: center;
         line-height: 1.2;
         margin-bottom: 20px;
+        text-shadow: 2px 2px 0px #000; /* Sombra cruda estilo retro */
     }
     
     .letter {
@@ -30,10 +44,11 @@ st.markdown("""
         padding: 0 2px;
     }
 
-    .comic-text {
-        font-family: 'Comic Sans MS', 'Comic Neue', cursive;
-        font-size: 20px;
-        color: #555;
+    /* 4. Bordes estilo Windows 95 para el lienzo */
+    . {
+        border: 3px solid;
+        border-color: #ffffff #808080 #808080 #ffffff !important; /* Efecto 3D crudo */
+        box-shadow: 2px 2px 0px #000;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -81,25 +96,26 @@ def ventana_resultado(prediccion, confianza, probabilidades):
             st.write("✨") # Respaldo visual si falta el GIF
     
     with col_der:
-        st.markdown(f"<p class='comic-text'>CONFIANZA: {confianza:.1f}%</p>", unsafe_allow_html=True)
+        st.write(f"### CONFIANZA: {confianza:.1f}%")
         st.progress(int(confianza))
         
     st.write("---")
-    st.markdown("<p class='comic-text'>PUNTUACION DE LOS NUMEROS</p>", unsafe_allow_html=True)
+    st.write("### PUNTUACION DE LOS NUMEROS")
     
-    # Grafica de barras colorida
+    # Grafica de barras colorida (Altair)
     datos_grafica = pd.DataFrame({
         'Numero': [str(i) for i in range(10)],
         'Valor': probabilidades
     })
 
-    grafica = alt.Chart(datos_grafica).mark_bar(cornerRadius=8).encode(
-        x=alt.X('Numero', axis=alt.Axis(labelAngle=0)),
+    # Usamos barras con esquinas cuadradas para el look retro
+    grafica = alt.Chart(datos_grafica).mark_bar(cornerRadius=0).encode(
+        x=alt.X('Numero', axis=alt.Axis(labelAngle=0, title="Numero")),
         y=alt.Y('Valor', axis=None),
         color=alt.condition(
             alt.datum.Numero == str(prediccion),
-            alt.value('#FF4B4B'), # Rojo para el ganador
-            alt.value('#4B8BFF')  # Azul para los demas
+            alt.value('#FF4B4B'), # Rojo crudo
+            alt.value('#4B8BFF')  # Azul crudo
         )
     ).properties(height=200)
 
@@ -109,11 +125,12 @@ def ventana_resultado(prediccion, confianza, probabilidades):
         st.rerun()
 
 # --- INTERFAZ PRINCIPAL ---
+# Título con efecto de sombra cruda y colores aleatorios
 st.markdown(titulo_colores("ADIVINA EL NUMERO"), unsafe_allow_html=True)
 
-st.markdown("<p class='comic-text' style='text-align:center;'>Dibuja un numero grande en el cuadro</p>", unsafe_allow_html=True)
+st.write("### Dibuja un numero grande en el cuadro")
 
-# Lienzo de dibujo
+# Lienzo de dibujo con bordes estilo retro
 canvas_result = st_canvas(
     fill_color="white",
     stroke_width=25,
@@ -150,4 +167,3 @@ if canvas_result.image_data is not None:
             ventana_resultado(num_final, prob_final, pred_raw)
         else:
             st.warning("Dibuja algo primero")
-
