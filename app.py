@@ -11,7 +11,7 @@ import random
 # Configuración de la página
 st.set_page_config(page_title="Juego de Numeros", layout="wide")
 
-# --- ESTILO CSS RETRO, CENTRADO Y ANIMACIONES ---
+# --- ESTILO CSS PARA POSICIONAMIENTO "DELANTE DEL TEXTO" ---
 st.markdown("""
     <style>
     .stApp {
@@ -26,6 +26,7 @@ st.markdown("""
         font-family: 'Comic Sans MS', 'Comic Neue', cursive !important;
     }
 
+    /* Animación de colores para el título */
     @keyframes color-change {
         0% { color: #FF5733; }
         25% { color: #33FF57; }
@@ -39,7 +40,6 @@ st.markdown("""
         font-weight: bold;
         text-align: center;
         text-shadow: 3px 3px 0px #000;
-        margin-bottom: 20px;
     }
     
     .animated-letter {
@@ -47,7 +47,22 @@ st.markdown("""
         animation: color-change 2s infinite;
     }
 
-    /* Bordes estilo Windows 95 para el lienzo */
+    /* ESTILO PARA IMÁGENES FLOTANTES (Delante de texto) */
+    .floating-img {
+        position: absolute;
+        z-index: 100;
+        border: 2px solid white;
+        box-shadow: 4px 4px 0px black;
+        background: white;
+    }
+
+    /* Posiciones específicas para tus imágenes */
+    .img-pollo { top: 150px; left: 50px; width: 150px; }
+    .img-pocoyo { top: 150px; right: 50px; width: 180px; }
+    .img-brsm { top: 450px; left: 40px; width: 160px; }
+    .img-decor { top: 450px; right: 40px; width: 160px; }
+
+    /* Estilo del Canvas centrado */
     [data-testid="stCanvas"] {
         border: 4px solid;
         border-color: #ffffff #808080 #808080 #ffffff !important;
@@ -57,11 +72,18 @@ st.markdown("""
     
     .stButton > button {
         display: block;
-        margin: 0 auto;
+        margin: 20px auto;
         font-size: 24px !important;
-        padding: 10px 20px !important;
     }
     </style>
+    """, unsafe_allow_html=True)
+
+# Inyección de las imágenes flotantes HTML
+st.markdown(f"""
+    <img src="https://media.tenor.com/On7_2777698AAAAC/pocoyo-dance.gif" class="floating-img img-pocoyo">
+    <img src="app/static/Gifs/pollo.jpg" class="floating-img img-pollo" onerror="this.style.display='none'">
+    <img src="app/static/Gifs/brsm.jpg" class="floating-img img-brsm" onerror="this.style.display='none'">
+    <img src="app/static/Gifs/image_992305.png" class="floating-img img-decor" onerror="this.style.display='none'">
     """, unsafe_allow_html=True)
 
 def titulo_animado(texto):
@@ -86,51 +108,28 @@ session = load_model()
 @st.dialog("¡MIRA!")
 def mostrar_resultado(prediccion, confianza, probabilidades):
     st.markdown(titulo_animado(f"NUMERO {prediccion}"), unsafe_allow_html=True)
-    
     col_gif, col_txt = st.columns([1, 1.2])
     with col_gif:
-        # Aquí es donde aparecerá el 0.gif SOLO si la predicción es 0
         ruta_gif = f"Gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
-        else:
-            st.write("🌈")
-
     with col_txt:
         st.write(f"### CONFIANZA: {confianza:.1f}%")
         st.progress(int(confianza))
     
-    st.write("---")
-    chart_data = pd.DataFrame({'Numero': [str(i) for i in range(10)], 'Puntaje': probabilidades})
+    chart_data = pd.DataFrame({'Num': [str(i) for i in range(10)], 'Val': probabilidades})
     grafica = alt.Chart(chart_data).mark_bar().encode(
-        x=alt.X('Numero', axis=alt.Axis(labelAngle=0)),
-        y=alt.Y('Puntaje', axis=None),
-        color=alt.condition(alt.datum.Numero == str(prediccion), alt.value('#FF4B4B'), alt.value('#4B8BFF'))
-    ).properties(height=200)
+        x=alt.X('Num', axis=alt.Axis(labelAngle=0)),
+        y=alt.Y('Val', axis=None),
+        color=alt.condition(alt.datum.Num == str(prediccion), alt.value('#FF4B4B'), alt.value('#4B8BFF'))
+    ).properties(height=150)
     st.altair_chart(grafica, use_container_width=True)
-    
     if st.button("VOLVER A JUGAR"):
         st.rerun()
 
 # --- INTERFAZ PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINA EL NUMERO"), unsafe_allow_html=True)
-
-# Galería de imágenes superior (HE QUITADO EL 0.GIF DE AQUÍ)
-cols = st.columns(4) # Ahora solo 4 columnas
-with cols[0]:
-    if os.path.exists("Gifs/pollo.png"): 
-        st.image("Gifs/pollo.png", use_container_width=True)
-with cols[1]:
-    # Pocoyo Dance
-    st.image("https://media.tenor.com/pocoyo-dance.gif", use_container_width=True)
-with cols[2]:
-    if os.path.exists("Gifs/brsm.png"): 
-        st.image("Gifs/brsm.png", use_container_width=True)
-with cols[3]:
-    if os.path.exists("Gifs/image_992305.png"): 
-        st.image("Gifs/image_992305.png", use_container_width=True)
-
-st.write("<h3 style='text-align:center;'>Dibuja un numero grande en el cuadro negro</h3>", unsafe_allow_html=True)
+st.write("<h3 style='text-align:center;'>Dibuja abajo</h3>", unsafe_allow_html=True)
 
 # Centrado del Canvas
 c1, c2, c3 = st.columns([1, 1.5, 1])
@@ -146,7 +145,6 @@ with c2:
         key="canvas",
     )
 
-    st.write("") 
     if st.button("¿QUE NUMERO ES?"):
         img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
         if np.any(np.array(img) > 20):
@@ -158,6 +156,5 @@ with c2:
             pred = np.argmax(res)
             conf = float(res[pred] * 100)
             mostrar_resultado(pred, conf, res)
-        else:
-            st.warning("¡Dibuja algo primero!")
+
 
