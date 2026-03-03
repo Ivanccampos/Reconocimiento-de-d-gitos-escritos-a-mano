@@ -4,19 +4,19 @@ import onnxruntime as ort
 import numpy as np
 from PIL import Image
 import pandas as pd
-import alt as alt
+import altair as alt
 import os
 import random
 
 # Configuración de la página
 st.set_page_config(page_title="Juego de Numeros", layout="centered")
 
-# --- ESTILO CSS RETRO Y FORZADO DE MODO OSCURO ---
+# --- ESTILO CSS FORZADO (MODO OSCURO PERMANENTE) ---
 st.markdown("""
     <style>
-    /* Forzamos fondo oscuro y grid en cualquier modo */
+    /* Forzamos el fondo oscuro y el patrón de diamantes */
     .stApp {
-        background-color: #1a1c23 !important;
+        background-color: #1a1c23 !important; /* Color base oscuro */
         background-image: url('https://www.transparenttextures.com/patterns/diagmonds-light.png');
         background-repeat: repeat;
         background-attachment: fixed;
@@ -25,7 +25,7 @@ st.markdown("""
     /* Fuente Comic Sans y forzado de color de texto blanco */
     @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:wght@700&display=swap');
     
-    html, body, [class*="st-"], p, div, span, label, h1, h2, h3 {
+    html, body, [class*="st-"], p, div, span, label {
         font-family: 'Comic Sans MS', 'Comic Neue', cursive !important;
         color: #ffffff !important; /* Texto siempre blanco */
     }
@@ -44,7 +44,7 @@ st.markdown("""
         font-size: 48px;
         font-weight: bold;
         text-align: center;
-        text-shadow: 2px 2px 0px #000;
+        text-shadow: 3px 3px 0px #000;
         margin-bottom: 20px;
     }
     
@@ -62,7 +62,18 @@ st.markdown("""
         background-color: #000000 !important;
     }
 
-    /* Forzar que el diálogo (pop-up) sea oscuro */
+    /* Ajuste para la barra de herramientas del canvas para que sea visible */
+    .stCanvasToolbar {
+        background-color: #333 !important;
+        border-radius: 5px;
+        padding: 5px;
+    }
+    
+    .stCanvasToolbar button svg {
+        fill: white !important;
+    }
+
+    /* Estilo del Diálogo (Pop-up) para que sea oscuro */
     div[role="dialog"] {
         background-color: #1a1c23 !important;
         border: 2px solid #444 !important;
@@ -89,7 +100,7 @@ def load_model():
 try:
     session = load_model()
 except Exception as e:
-    st.error("Asegúrate de tener el archivo modelo_digitos.onnx")
+    st.error(f"Error al cargar el modelo: {e}")
 
 # --- VENTANA DE RESULTADO ---
 @st.dialog("RESULTADO")
@@ -114,7 +125,6 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
         'Puntaje': probabilidades
     })
 
-    # Importante: labelColor='white' para que se vea en fondo oscuro
     grafica = alt.Chart(chart_data).mark_bar().encode(
         x=alt.X('Numero', axis=alt.Axis(labelAngle=0, labelColor='white')),
         y=alt.Y('Puntaje', axis=None),
@@ -132,7 +142,7 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
 
 # --- INTERFAZ PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINA EL NUMERO"), unsafe_allow_html=True)
-st.write("<p style='text-align:center;'>Dibuja un numero grande en el cuadro negro</p>", unsafe_allow_html=True)
+st.write("<p style='text-align:center; font-weight:bold;'>Dibuja un numero grande en el cuadro negro</p>", unsafe_allow_html=True)
 
 # 2. Centrado del Canvas
 col1, col2, col3 = st.columns([1, 2, 1])
