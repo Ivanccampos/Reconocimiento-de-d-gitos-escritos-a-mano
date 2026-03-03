@@ -11,7 +11,7 @@ import random
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Juego de Numeros", layout="wide")
 
-# 2. ESTILO CSS RETRO (Fondo de mosaico y Comic Sans)
+# 2. ESTILO CSS RETRO
 st.markdown("""
     <style>
     .stApp {
@@ -25,7 +25,6 @@ st.markdown("""
         font-family: 'Comic Sans MS', 'Comic Neue', cursive !important;
     }
 
-    /* Animación de colores para el título */
     @keyframes color-change {
         0% { color: #FF5733; }
         25% { color: #33FF57; }
@@ -47,7 +46,6 @@ st.markdown("""
         animation: color-change 2s infinite;
     }
 
-    /* Estilo del Canvas con bordes 3D retro */
     [data-testid="stCanvas"] {
         border: 4px solid;
         border-color: #ffffff #808080 #808080 #ffffff !important;
@@ -55,13 +53,13 @@ st.markdown("""
         margin: 0 auto;
     }
 
-    /* Centrar el botón */
     .stButton > button {
         display: block;
         margin: 20px auto;
         background-color: #ffeb3b;
         border: 2px solid black;
         font-weight: bold;
+        font-size: 20px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -77,7 +75,7 @@ def titulo_animado(texto):
     html_title += '</div>'
     return html_title
 
-# 3. CARGAR MODELO ONNX
+# 3. CARGAR MODELO
 @st.cache_resource
 def load_model():
     return ort.InferenceSession("modelo_digitos.onnx")
@@ -85,50 +83,66 @@ def load_model():
 try:
     session = load_model()
 except:
-    st.error("Archivo modelo_digitos.onnx no encontrado")
+    st.error("Error: modelo_digitos.onnx no encontrado.")
 
-# --- VENTANA DE RESULTADO ---
-@st.dialog("¡MIRA!")
+# --- VENTANA DE RESULTADO CON GRÁFICA RESTAURADA ---
+@st.dialog("¡MIRA EL RESULTADO!")
 def mostrar_resultado(prediccion, confianza, probabilidades):
     st.markdown(titulo_animado(f"NUMERO {prediccion}"), unsafe_allow_html=True)
     
     col_gif, col_txt = st.columns([1, 1.2])
     with col_gif:
-        # Busca el GIF del resultado (0.gif, 1.gif...)
         ruta_gif = f"Gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
         else:
-            st.write("🌈")
+            st.write("✨")
 
     with col_txt:
         st.write(f"### CONFIANZA: {confianza:.1f}%")
         st.progress(int(confianza))
     
-    if st.button("VOLVER A JUGAR"):
+    st.write("---")
+    st.write("### PROBABILIDADES")
+    
+    # --- GRÁFICA DE BARRAS REESTABLECIDA ---
+    chart_data = pd.DataFrame({
+        'Número': [str(i) for i in range(10)],
+        'Probabilidad': probabilidades
+    })
+
+    grafica = alt.Chart(chart_data).mark_bar(cornerRadiusTopLeft=5, cornerRadiusTopRight=5).encode(
+        x=alt.X('Número', axis=alt.Axis(labelAngle=0)),
+        y=alt.Y('Probabilidad', axis=None),
+        color=alt.condition(
+            alt.datum.Número == str(prediccion),
+            alt.value('#FF4B4B'), # Rojo para el ganador
+            alt.value('#4B8BFF')  # Azul para el resto
+        )
+    ).properties(height=150)
+
+    st.altair_chart(grafica, use_container_width=True)
+    
+    if st.button("INTENTAR OTRA VEZ"):
         st.rerun()
 
 # --- INTERFAZ PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINA EL NUMERO"), unsafe_allow_html=True)
 
-# 4. DISPOSICIÓN DE IMÁGENES (.PNG) Y CANVAS
-# Usamos 3 columnas para que las imágenes rodeen al lienzo sin moverlo
+# 4. IMÁGENES Y CANVAS (Columnas estables)
 col_izq, col_centro, col_der = st.columns([1, 2, 1])
 
 with col_izq:
-    # Imagen del Pollo
     if os.path.exists("Gifs/pollo.png"):
         st.image("Gifs/pollo.png", use_container_width=True)
-    st.write(" ") # Espacio
-    # Imagen de Barrio Sésamo
+    st.write(" ")
     if os.path.exists("Gifs/brsm.png"):
         st.image("Gifs/brsm.png", use_container_width=True)
 
 with col_der:
-    # GIF de Pocoyó desde enlace directo
+    # Pocoyó (GIF directo para que no falle)
     st.image("https://media.tenor.com/On7_2777698AAAAC/pocoyo-dance.gif", use_container_width=True)
-    st.write(" ") # Espacio
-    # Tu imagen decorativa adicional
+    st.write(" ")
     if os.path.exists("Gifs/image_992305.png"):
         st.image("Gifs/image_992305.png", use_container_width=True)
 
@@ -144,17 +158,13 @@ with col_centro:
         key="canvas",
     )
     
-    st.write("<p style='text-align:center;'>Dibuja aquí arriba</p>", unsafe_allow_html=True)
-    
     if st.button("¿QUE NUMERO ES?"):
         img = Image.fromarray(canvas_result.image_data.astype('uint8')).convert('L')
         if np.any(np.array(img) > 20):
-            # Preprocesar para el modelo (28x28)
             img_28 = img.resize((28, 28), Image.LANCZOS)
             img_array = np.array(img_28).astype('float32') / 255.0
             img_array = img_array.reshape(1, 28, 28, 1)
 
-            # Inferencia
             input_name = session.get_inputs()[0].name
             output_name = session.get_outputs()[0].name
             result = session.run([output_name], {input_name: img_array})[0][0]
