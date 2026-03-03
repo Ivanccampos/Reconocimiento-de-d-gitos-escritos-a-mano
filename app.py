@@ -93,7 +93,6 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
     
     col_gif, col_txt = st.columns([1, 1.2])
     with col_gif:
-        # Los GIFs (0.gif, 1.gif...) siguen apareciendo aquí al acertar
         ruta_gif = f"Gifs/{prediccion}.gif"
         if os.path.exists(ruta_gif):
             st.image(ruta_gif, use_container_width=True)
@@ -130,19 +129,16 @@ def mostrar_resultado(prediccion, confianza, probabilidades):
 # --- INTERFAZ PRINCIPAL ---
 st.markdown(titulo_animado("ADIVINA EL NUMERO"), unsafe_allow_html=True)
 
-# 4. DISPOSICIÓN DE IMÁGENES (Solo Pollo y Barrio Sésamo) Y CANVAS
+# 4. DISPOSICIÓN EQUILIBRADA: [POLLO] [CANVAS] [BARRIO SÉSAMO]
 col_izq, col_centro, col_der = st.columns([1, 2, 1])
 
 with col_izq:
     if os.path.exists("Gifs/pollo.png"):
         st.image("Gifs/pollo.png", use_container_width=True)
-    st.write(" ") 
-    if os.path.exists("Gifs/brsm.png"):
-        st.image("Gifs/brsm.png", use_container_width=True)
 
 with col_der:
-    # Columna derecha vacía por ahora (limpia de image_992305.png)
-    st.write(" ")
+    if os.path.exists("Gifs/brsm.png"):
+        st.image("Gifs/brsm.png", use_container_width=True)
 
 with col_centro:
     canvas_result = st_canvas(
